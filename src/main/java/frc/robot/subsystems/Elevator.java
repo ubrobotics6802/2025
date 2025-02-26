@@ -5,6 +5,7 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.Servo;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.revrobotics.*;
 import com.revrobotics.servohub.ServoChannel;
@@ -23,14 +24,16 @@ public class Elevator extends SubsystemBase {
   /** Creates a new Elevator. */
   private SparkMax elevatorMotorLeft;
   private SparkMax elevatorMotorRight;
+  public boolean servoOn = true;
   // Initialize the servo hub
   ServoHub m_servoHub = new ServoHub(2);
 
   // Obtain a servo channel controller
-  ServoChannel m_channel0 = m_servoHub.getServoChannel(ChannelId.kChannelId5);
+  ServoChannel servo = m_servoHub.getServoChannel(ChannelId.kChannelId5);
   public Elevator(SparkMaxConfig config) {    
-    m_channel0.setPowered(true);
-    m_channel0.setEnabled(true);
+    servo.setPowered(true);
+    servo.setEnabled(true);
+    servo.setPulseWidth(2500);
     
 config.closedLoop
     .p(0.04)
@@ -54,19 +57,36 @@ config.closedLoop
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+    if(servoOn){
+      setPosition(2500);
+    }
+    else{
+      setPosition(500);
+    }
+  }
+  public void toggleServo() {
+    System.out.println("toggled");
+    servoOn = !servoOn;
+
   }
 
   public void setPosition(int position) {
-    m_channel0.setPulseWidth(position);
+    
+    servo.setPulseWidth(position);
 
   }
 
 public void setPower(double power) {
+  System.out.println(power);
   elevatorMotorRight.set(power);
 }  
 
   public void setElevatorPosition(double position) {
     elevatorMotorRight.getClosedLoopController().setReference(position, ControlType.kPosition);
     System.out.println(position);
+  }
+
+  public Command setElevatorPositionCommand(double position) {
+    return run(() -> setElevatorPosition(position)).withName("Elevator Set Position");
   }
 }

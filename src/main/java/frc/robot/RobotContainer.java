@@ -54,23 +54,29 @@ public class RobotContainer
   private final Wrist wrist;
 
   // Buttons for controlling the elevator
-  private final Trigger elevatorUpButton = new Trigger(() -> operatorController.getRawButton(4));
-  private final Trigger elevatorL3Button = new Trigger(() -> operatorController.getRawButton(12));
-  private final Trigger elevatorL2Button = new Trigger(() -> operatorController.getRawButton(9));
-  private final Trigger elevatorL1Button = new Trigger(() -> operatorController.getRawButton(8));
-  private final Trigger elevatorDownButton = new Trigger(() -> operatorController.getRawButton(5));
+  
+  private final Trigger elevatorL4Button = new Trigger(() -> operatorController.getRawButton(8));
+  private final Trigger elevatorL3Button = new Trigger(() -> operatorController.getRawButton(5));
+  private final Trigger elevatorL2Button = new Trigger(() -> operatorController.getRawButton(20));
+  private final Trigger elevatorL1Button = new Trigger(() -> operatorController.getRawButton(7));
+  private final Trigger elevatorDownButton = new Trigger(() -> operatorController.getRawButton(10));
+  private final Trigger elevatorCollectButton = new Trigger(() -> operatorController.getRawButton(11));
 
   // Buttons for controlling the intake
-  private final Trigger intakeInButton = new Trigger(() -> operatorController.getRawButton(10));
-  private final Trigger intakeOutButton = new Trigger(() -> operatorController.getRawButton(19));
+  private final Trigger intakeInButton = new Trigger(() -> operatorController.getRawButton(6));
+  private final Trigger intakeOutButton = new Trigger(() -> operatorController.getRawButton(13));
 
   // Buttons for controlling the wrist
-  private final Trigger wristUpButton = new Trigger(() -> operatorController.getRawButton(18));
-  private final Trigger wristDownButton = new Trigger(() -> operatorController.getRawButton(17));
+  
+  private final Trigger wristCollectButton = new Trigger(() -> operatorController.getRawButton(19));
+  private final Trigger wristUpButton = new Trigger(() -> operatorController.getRawButton(50));
+  private final Trigger wristScoreButton = new Trigger(() -> operatorController.getRawButton(17));
 
   // Buttons for controlling ratchet mode
-  private final Trigger ratchetOpenButton = new Trigger(() -> operatorController.getRawButton(10));
-  private final Trigger ratchetCloseButton = new Trigger(() -> operatorController.getRawButton(20));
+  private final Trigger ratchetOpenButton = new Trigger(() -> operatorController.getRawButton(12));
+  private final Trigger ratchetCloseButton = new Trigger(() -> operatorController.getRawButton(18));
+
+  private final Trigger climbButton = new Trigger(() -> driverController.getRawButton(1));
   /**
    * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
    */
@@ -85,8 +91,8 @@ public class RobotContainer
   /**
    * Clone's the angular velocity input stream and converts it to a fieldRelative input stream.
    */
-  SwerveInputStream driveDirectAngle = driveAngularVelocity.copy().withControllerHeadingAxis(() -> driverController.getRawAxis(rightX),
-  () -> driverController.getRawAxis(rightY))
+  SwerveInputStream driveDirectAngle = driveAngularVelocity.copy().withControllerHeadingAxis(() -> driverController.getRawAxis(leftX),
+  () -> driverController.getRawAxis(leftY) * -1)
                                                            .headingWhile(true);
 
   /**
@@ -103,6 +109,11 @@ public class RobotContainer
    */
   public RobotContainer()
   {
+    SparkMaxConfig intakeConfig = new SparkMaxConfig();
+    intakeConfig
+        .smartCurrentLimit(20)
+        .idleMode(IdleMode.kBrake);
+
     SparkMaxConfig config = new SparkMaxConfig();
     config
         .smartCurrentLimit(40)
@@ -116,7 +127,7 @@ public class RobotContainer
 
 
     elevator = new Elevator(elevatorConfig);
-    intake = new Intake(config);
+    intake = new Intake(intakeConfig);
     wrist = new Wrist(config);
     // AbsoluteDriveAdv closAbsoluteDriveAdv = new AbsoluteDriveAdv(drivebase, driverController.getRawAxis(1), driverController.getRawAxis(0), driverController.getRawAxis(3), null, null, null, null, null)
     // Configure the trigger bindings
@@ -125,6 +136,7 @@ public class RobotContainer
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
   }
 
+  
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
    * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary predicate, or via the
@@ -134,20 +146,22 @@ public class RobotContainer
    */
   private void configureBindings()
   {
+    elevatorL4Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
+    elevatorL3Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
+    elevatorL2Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
+    elevatorL1Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
+    elevatorCollectButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_COLLECT_ANGLE)));
+    elevatorDownButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(0), wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE)));
+    
+    intakeInButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED), () -> intake.setSpeed(0), intake));
+    intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SPEED), () -> intake.setSpeed(0), intake));
+    intakeOutButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
+    
+    //ratchetOpenButton.whileTrue(new InstantCommand(()-> elevator.setPosition(2500), elevator));
+    ratchetCloseButton.whileTrue(new InstantCommand(()-> elevator.toggleServo(), elevator));
+    climbButton.whileTrue(new StartEndCommand(() -> elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER), () -> elevator.setPower(0), elevator));
 
-    elevatorUpButton.whileTrue(new StartEndCommand(() -> elevator.setElevatorPosition(73), () -> elevator.setElevatorPosition(73), elevator));
-    elevatorL3Button.whileTrue(new StartEndCommand(() -> elevator.setElevatorPosition(53.7), () -> elevator.setElevatorPosition(53.7), elevator));
-    elevatorL2Button.whileTrue(new StartEndCommand(() -> elevator.setElevatorPosition(32.1), () -> elevator.setElevatorPosition(32.1), elevator));
-    elevatorL1Button.whileTrue(new StartEndCommand(() -> elevator.setElevatorPosition(20), () -> elevator.setElevatorPosition(20), elevator));
-    elevatorDownButton.whileTrue(new StartEndCommand(() -> elevator.setPower(-0.3), () -> elevator.setPower(0), elevator));
-    intakeInButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(-0.5), () -> intake.setSpeed(0), intake));
-    intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(0.5), () -> intake.setSpeed(0), intake));
-    wristUpButton.whileTrue(new StartEndCommand(() -> wrist.setPosition(3.8), () -> wrist.setPosition(3.8), wrist));
-    wristDownButton.whileTrue(new StartEndCommand(() -> wrist.setPosition(1.6), () -> wrist.setPosition(1.6), wrist));
-    ratchetOpenButton.whileTrue(new InstantCommand(()-> elevator.setPosition(2500), elevator));
-    ratchetCloseButton.whileTrue(new InstantCommand(()-> elevator.setPosition(500), elevator));
-
-     Command driveFieldOrientedDirectAngle      = drivebase.driveFieldOriented(driveDirectAngle);
+    Command driveFieldOrientedDirectAngle      = drivebase.driveFieldOriented(driveDirectAngle);
     Command driveFieldOrientedAnglularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
     Command driveRobotOrientedAngularVelocity  = drivebase.driveFieldOriented(driveRobotOriented);
     Command driveSetpointGen = drivebase.driveWithSetpointGeneratorFieldRelative(
@@ -158,7 +172,7 @@ public class RobotContainer
      // drivebase.setDefaultCommand(driveFieldOrientedDirectAngleKeyboard);
     } else
     {
-      drivebase.setDefaultCommand(driveFieldOrientedAnglularVelocity);
+      drivebase.setDefaultCommand(driveFieldOrientedDirectAngle);
     }
 
     if (Robot.isSimulation())

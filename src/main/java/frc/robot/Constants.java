@@ -42,15 +42,27 @@ public final class Constants
   public static final class ElevatorConstants {
     public static final int ELEVATOR_MOTOR_RIGHT_ID = 3;
     public static final int ELEVATOR_MOTOR_LEFT_ID = 52;
+    public static final double ELEVATOR_L4_HEIGHT = 76.5;
+    public static final double ELEVATOR_L3_HEIGHT = 50.7;
+    public static final double ELEVATOR_L2_HEIGHT = 32.1;
+    public static final double ELEVATOR_L1_HEIGHT = 20.0;
+    public static final double ELEVATOR_COLLECT_HEIGHT = 10.0;
+    public static final double ELEVATOR_CLIMB_BUTTON_POWER = -0.5;
   }
 
   public static final class IntakeConstants {
     public static final int INTAKE_MOTOR_RIGHT_ID = 7;
     public static final int INTAKE_MOTOR_LEFT_ID = 51;
+    public static final double INTAKE_IN_SPEED = -0.5;
+    public static final double INTAKE_OUT_SPEED = 0.1;
   }
 
   public static final class WristConstants {
     public static final int WRIST_MOTOR_ID = 18;
+    public static final double WRIST_MAX_ANGLE = 3.9;
+    public static final double WRIST_COLLECT_ANGLE = 3.5;
+    public static final double WRIST_HIGHER_SCORING_ANGLE = 2.4;
+    public static final double WRIST_LOWER_SCORING_ANGLE = 2.0;  
   }
 
   public static class OperatorConstants
