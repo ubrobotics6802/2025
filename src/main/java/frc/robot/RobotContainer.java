@@ -4,8 +4,12 @@
 
 package frc.robot;
 
+import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+
+import au.grapplerobotics.LaserCan;
+
 import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -15,6 +19,9 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.PS4Controller.Button;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -45,6 +52,14 @@ public class RobotContainer
   private final int leftY = 2;
   private final int rightX = 0;
   private final int rightY = 1;
+
+  SendableChooser<Command> autoChooser;
+
+
+  int requestedAngle = 0;
+
+  private boolean fieldOriented = true;
+
   // The robot's subsystems and commands are defined here...
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve/neo"));
@@ -59,7 +74,7 @@ public class RobotContainer
   private final Trigger elevatorL3Button = new Trigger(() -> operatorController.getRawButton(5));
   private final Trigger elevatorL2Button = new Trigger(() -> operatorController.getRawButton(20));
   private final Trigger elevatorL1Button = new Trigger(() -> operatorController.getRawButton(7));
-  private final Trigger elevatorDownButton = new Trigger(() -> operatorController.getRawButton(10));
+  private final Trigger elevatorDownButton = new Trigger(() -> operatorController.getRawButton(99));
   private final Trigger elevatorCollectButton = new Trigger(() -> operatorController.getRawButton(11));
 
   // Buttons for controlling the intake
@@ -77,12 +92,27 @@ public class RobotContainer
   private final Trigger ratchetCloseButton = new Trigger(() -> operatorController.getRawButton(18));
 
   private final Trigger climbButton = new Trigger(() -> driverController.getRawButton(1));
+
+  private final Trigger driveModeButton = new Trigger(() -> driverController.getRawButton(4));
+  private final Trigger robotModeButton = new Trigger(() -> driverController.getRawButton(3));
+
+  Trigger frontReefButton = new Trigger(() -> operatorController.getRawButton(15));
+  Trigger backReefButton = new Trigger(() -> operatorController.getRawButton(12));
+  Trigger frontLeftReefButton = new Trigger(() -> operatorController.getRawButton(16));
+  Trigger backLeftReefButton = new Trigger(() -> operatorController.getRawButton(4));
+  Trigger frontRightReefButton = new Trigger(() -> operatorController.getRawButton(10));
+  Trigger backRightReefButton = new Trigger(() -> operatorController.getRawButton(9));
+
+
+
+
+
   /**
    * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
    */
   SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                                                () -> driverController.getRawAxis(rightY) * -1,
-                                                                () -> driverController.getRawAxis(rightX) * 1)
+                                                                () -> driverController.getRawAxis(rightY) * 1,
+                                                                () -> driverController.getRawAxis(rightX) * -1)
                                                             .withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
                                                             .deadband(OperatorConstants.DEADBAND)
                                                             .scaleTranslation(0.8)
@@ -91,15 +121,37 @@ public class RobotContainer
   /**
    * Clone's the angular velocity input stream and converts it to a fieldRelative input stream.
    */
-  SwerveInputStream driveDirectAngle = driveAngularVelocity.copy().withControllerHeadingAxis(() -> driverController.getRawAxis(leftX),
-  () -> driverController.getRawAxis(leftY) * -1)
+  SwerveInputStream driveDirectAngle = driveAngularVelocity.copy().withControllerHeadingAxis(() -> driverController.getRawAxis(leftX) * -1,
+  () -> driverController.getRawAxis(leftY))
                                                            .headingWhile(true);
+
+SwerveInputStream driveDirectAngleToDestinationFront = driveAngularVelocity.copy().withControllerHeadingAxis(() -> 0, () -> 1)
+                                                           .headingWhile(true);
+SwerveInputStream driveDirectAngleToDestinationBack = driveAngularVelocity.copy().withControllerHeadingAxis(() -> 0, () -> -1)
+                                                           .headingWhile(true);
+                                                           
+SwerveInputStream driveDirectAngleToDestinationFrontLeft = driveAngularVelocity.copy().withControllerHeadingAxis(() -> -.5, () -> .866)
+                                                           .headingWhile(true);
+SwerveInputStream driveDirectAngleToDestinationBackLeft = driveAngularVelocity.copy().withControllerHeadingAxis(() -> -.5, () -> -.866)
+                                                           .headingWhile(true);
+SwerveInputStream driveDirectAngleToDestinationFrontRight = driveAngularVelocity.copy().withControllerHeadingAxis(() -> .5, () -> .866)
+                                                           .headingWhile(true);
+                                                           
+SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.copy().withControllerHeadingAxis(() -> .5, () -> -.866)
+                                                           .headingWhile(true);
+                                                        
 
   /**
    * Clone's the angular velocity input stream and converts it to a robotRelative input stream.
    */
-  SwerveInputStream driveRobotOriented = driveAngularVelocity.copy().robotRelative(true)
-                                                             .allianceRelativeControl(false);
+  SwerveInputStream driveRobotOriented = SwerveInputStream.of(drivebase.getSwerveDrive(),
+                                                                () -> driverController.getRawAxis(rightY) * 1,
+                                                                () -> driverController.getRawAxis(rightX) * -1)
+                                                            .withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
+                                                            .deadband(OperatorConstants.DEADBAND)
+                                                            .scaleTranslation(0.8)
+                                                            .allianceRelativeControl(false)
+                                                            .robotRelative(true);
 
   
   
@@ -109,6 +161,11 @@ public class RobotContainer
    */
   public RobotContainer()
   {
+
+
+    autoChooser = AutoBuilder.buildAutoChooser();
+    SmartDashboard.putData("autoChooser", autoChooser);
+
     SparkMaxConfig intakeConfig = new SparkMaxConfig();
     intakeConfig
         .smartCurrentLimit(20)
@@ -129,6 +186,9 @@ public class RobotContainer
     elevator = new Elevator(elevatorConfig);
     intake = new Intake(intakeConfig);
     wrist = new Wrist(config);
+
+    
+    NamedCommands.registerCommand("raiseElevator", elevator.setElevatorPositionCommand(15));
     // AbsoluteDriveAdv closAbsoluteDriveAdv = new AbsoluteDriveAdv(drivebase, driverController.getRawAxis(1), driverController.getRawAxis(0), driverController.getRawAxis(3), null, null, null, null, null)
     // Configure the trigger bindings
     configureBindings();
@@ -136,7 +196,43 @@ public class RobotContainer
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
   }
 
+  public double getYHeadingValue(){
+    double value = 0;
+    if(requestedAngle == 0){
+      value = 1;
+    } else if(requestedAngle == 60){
+      value = .866;
+    } else if(requestedAngle == 180){
+      value = -1;
+    } else if(requestedAngle == 120){
+      value = .866;
+    } else if(requestedAngle == 240){
+      value = -.866;
+    } else if(requestedAngle == 300){
+      value = .866;
+    }
+    return value;
+  }
   
+  public double getXHeadingValue(){
+    double value = 0;
+    if(requestedAngle == 0){
+      value = 0;
+    } else if(requestedAngle == 60){
+      value = .5;
+    } else if(requestedAngle == 180){
+      value = 0;
+    } else if(requestedAngle == 120){
+      value = -.5;
+    } else if(requestedAngle == 240){
+      value = -.5;
+    } else if(requestedAngle == 300){
+      value = -.5;
+    }
+    return value;
+  }
+
+
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
    * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary predicate, or via the
@@ -146,26 +242,43 @@ public class RobotContainer
    */
   private void configureBindings()
   {
+    Command driveDestinationAngleFront = drivebase.driveFieldOriented(driveDirectAngleToDestinationFront);
+    Command driveDestinationAngleBack = drivebase.driveFieldOriented(driveDirectAngleToDestinationBack);
+    Command driveDestinationAngleFrontLeft = drivebase.driveFieldOriented(driveDirectAngleToDestinationFrontLeft);
+    Command driveDestinationAngleBackLeft = drivebase.driveFieldOriented(driveDirectAngleToDestinationBackLeft);
+    Command driveDestinationAngleFrontRight = drivebase.driveFieldOriented(driveDirectAngleToDestinationFrontRight);
+    Command driveDestinationAngleBackRight = drivebase.driveFieldOriented(driveDirectAngleToDestinationBackRight);
+
     elevatorL4Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
-    elevatorL3Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
-    elevatorL2Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
+    elevatorL3Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT), wrist.setPositionCommand(intake.getIntakeRan() ? Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE : Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
+    elevatorL2Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT), wrist.setPositionCommand(intake.getIntakeRan() ? Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE : Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
     elevatorL1Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
     elevatorCollectButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_COLLECT_ANGLE)));
     elevatorDownButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(0), wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE)));
     
     intakeInButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED), () -> intake.setSpeed(0), intake));
-    intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SPEED), () -> intake.setSpeed(0), intake));
+    intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? Constants.IntakeConstants.INTAKE_OUT_SPEED : .5), () -> intake.setSpeed(0), intake));
     intakeOutButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
-    
+
+    frontLeftReefButton.onTrue((driveDestinationAngleFrontLeft));
+    frontRightReefButton.onTrue((driveDestinationAngleFrontRight));
+    backRightReefButton.onTrue((driveDestinationAngleBackRight));
+    backLeftReefButton.onTrue((driveDestinationAngleBackLeft));
+    backReefButton.onTrue((driveDestinationAngleBack));
+    frontReefButton.onTrue((driveDestinationAngleFront));
+        
     //ratchetOpenButton.whileTrue(new InstantCommand(()-> elevator.setPosition(2500), elevator));
     ratchetCloseButton.whileTrue(new InstantCommand(()-> elevator.toggleServo(), elevator));
+
+   
     climbButton.whileTrue(new StartEndCommand(() -> elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER), () -> elevator.setPower(0), elevator));
 
     Command driveFieldOrientedDirectAngle      = drivebase.driveFieldOriented(driveDirectAngle);
     Command driveFieldOrientedAnglularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
     Command driveRobotOrientedAngularVelocity  = drivebase.driveFieldOriented(driveRobotOriented);
-    Command driveSetpointGen = drivebase.driveWithSetpointGeneratorFieldRelative(
-        driveDirectAngle);
+
+    driveModeButton.onTrue(driveFieldOrientedDirectAngle);
+    robotModeButton.onTrue(driveRobotOrientedAngularVelocity);
 
     if (RobotBase.isSimulation())
     {
@@ -212,11 +325,11 @@ public class RobotContainer
    *
    * @return the command to run in autonomous
    */
-  // public Command getAutonomousCommand()
-  // {
-  //   // An example command will be run in autonomous
-  //   //return drivebase.getAutonomousCommand("New Auto");
-  // }
+  public Command getAutonomousCommand()
+  {
+    // An example command will be run in autonomous
+    return autoChooser.getSelected();
+  }
 
   // public void setMotorBrake(boolean brake)
   // {

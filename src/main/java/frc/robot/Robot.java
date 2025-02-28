@@ -4,8 +4,12 @@
 
 package frc.robot;
 
+import com.revrobotics.ColorSensorV3;
+
 import au.grapplerobotics.CanBridge;
+import au.grapplerobotics.LaserCan;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -22,6 +26,11 @@ public class Robot extends TimedRobot
 
   private static Robot   instance;
   private        Command m_autonomousCommand;
+  
+  private LaserCan lidar = new LaserCan(55);
+  private final I2C.Port i2cPort = I2C.Port.kOnboard;
+  //private final ColorSensorV3 m_colorSensor = new ColorSensorV3(i2cPort);
+
 
   private RobotContainer m_robotContainer;
 
@@ -72,6 +81,8 @@ public class Robot extends TimedRobot
     // commands, running already-scheduled commands, removing finished or interrupted commands,
     // and running subsystem periodic() methods.  This must be called from the robot's periodic
     // block in order for anything in the Command-based framework to work.
+    //LaserCan.Measurement measurement = lidar.getMeasurement();
+    //System.out.println(measurement.distance_mm);
     CommandScheduler.getInstance().run();
   }
 
@@ -104,7 +115,7 @@ public class Robot extends TimedRobot
   public void autonomousInit(){
   // {
   //   m_robotContainer.setMotorBrake(true);
-  //   m_autonomousCommand = m_robotContainer.getAutonomousCommand();
+     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
     // schedule the autonomous command (example)
     if (m_autonomousCommand != null)

@@ -76,6 +76,8 @@ public class SwerveSubsystem extends SubsystemBase
    */
   private Vision vision;
 
+  private boolean fieldOrientedMode = true;
+
   /**
    * Initialize {@link SwerveDrive} with the directory provided.
    *
@@ -114,6 +116,7 @@ public class SwerveSubsystem extends SubsystemBase
     setupPathPlanner();
   }
 
+
   /**
    * Construct the swerve drive.
    *
@@ -126,7 +129,7 @@ public class SwerveSubsystem extends SubsystemBase
                                   controllerCfg,
                                   Constants.MAX_SPEED,
                                   new Pose2d(new Translation2d(Meter.of(2), Meter.of(0)),
-                                             Rotation2d.fromDegrees(0)));
+                                             Rotation2d.fromDegrees(180)));
   }
 
   /**
@@ -222,6 +225,21 @@ public class SwerveSubsystem extends SubsystemBase
     //Preload PathPlanner Path finding
     // IF USING CUSTOM PATHFINDER ADD BEFORE THIS LINE
     PathfindingCommand.warmupCommand().schedule();
+  }
+
+  public Command toggleDriveMode(Command fieldOriented, Command robotOriented){
+    return run(()->{
+      if(fieldOrientedMode){
+        setDefaultCommand(robotOriented);
+        swerveDrive.setHeadingCorrection(true);
+      }
+      else{
+        setDefaultCommand(fieldOriented);
+        swerveDrive.setHeadingCorrection(false);
+      }    
+      fieldOrientedMode = !fieldOrientedMode;
+      }
+    );
   }
 
   /**

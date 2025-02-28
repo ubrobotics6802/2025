@@ -13,11 +13,13 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.Constants.WristConstants;
 
 public class Wrist extends SubsystemBase {
   /** Creates a new Wrist. */
  private SparkMax wristMotor;
+ public double position = Constants.WristConstants.WRIST_MAX_ANGLE;
   public Wrist(SparkMaxConfig config) {
     config.inverted(true);
     config.absoluteEncoder.positionConversionFactor(6);
@@ -32,13 +34,13 @@ public class Wrist extends SubsystemBase {
 
   public void periodic() {
     // This method will be called once per scheduler run
+    wristMotor.getClosedLoopController().setReference(position, ControlType.kPosition);
   }
   public void setPosition(double position) {
-    System.out.println(position);
-    wristMotor.getClosedLoopController().setReference(position, ControlType.kPosition);
+    this.position = position;
   }
 
   public Command setPositionCommand(double position) {
-    return run(() -> setPosition(position));
+    return run(() -> setPosition(position)).withName("Wrist SetPosition");
   }
 }
