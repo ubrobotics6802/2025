@@ -22,7 +22,7 @@ public class Wrist extends SubsystemBase {
  public double position = Constants.WristConstants.WRIST_MAX_ANGLE;
   public Wrist(SparkMaxConfig config) {
     config.inverted(true);
-    config.absoluteEncoder.positionConversionFactor(6);
+    config.absoluteEncoder.positionConversionFactor(6).zeroOffset(.70);
     config.closedLoop
     .p(0.6)
     .i(0)

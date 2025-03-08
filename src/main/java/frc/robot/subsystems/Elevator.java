@@ -5,6 +5,7 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.Servo;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.revrobotics.*;
@@ -64,6 +65,7 @@ config.closedLoop
     else{
       setPosition(500);
     }
+    SmartDashboard.putBoolean("Elevator Open", servoOn);
   }
   public void toggleServo() {
     servoOn = !servoOn;
@@ -77,7 +79,6 @@ config.closedLoop
   }
 
 public void setPower(double power) {
-  System.out.println(power);
   elevatorMotorRight.set(power);
 }  
 
@@ -87,7 +88,8 @@ public void setPower(double power) {
 
   public Command setElevatorPositionCommand(double position) {
     return run(() -> 
-     {System.out.println("hey I ran look at me");this.position = position; 
+     {this.position = position; 
+      System.out.println(position);
       elevatorMotorRight.getClosedLoopController().setReference(position, ControlType.kPosition);}).withName("Elevator Set Position");
   }
 

@@ -17,6 +17,8 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
+
+import au.grapplerobotics.LaserCan;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
@@ -31,6 +33,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -45,7 +48,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import org.json.simple.parser.ParseException;
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonUtils;
 import org.photonvision.targeting.PhotonPipelineResult;
+import org.photonvision.targeting.PhotonTrackedTarget;
+
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.SwerveDriveTest;
@@ -63,7 +70,14 @@ public class SwerveSubsystem extends SubsystemBase
    * Swerve drive object.
    */
   private final SwerveDrive         swerveDrive;
+
+  
+  private LaserCan lidar = new LaserCan(55);
+  public boolean highLow = false;
+  PhotonCamera camera = new PhotonCamera("FrontCamera");
+  PhotonTrackedTarget trackedTarget = null;
   /**
+   * 
    * AprilTag field layout.
    */
   private final AprilTagFieldLayout aprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2024Crescendo);
@@ -116,7 +130,6 @@ public class SwerveSubsystem extends SubsystemBase
     setupPathPlanner();
   }
 
-
   /**
    * Construct the swerve drive.
    *
@@ -140,6 +153,14 @@ public class SwerveSubsystem extends SubsystemBase
     vision = new Vision(swerveDrive::getPose, swerveDrive.field);
   }
 
+  public void setHighLow(boolean value){
+    highLow = value;
+  }
+
+  public boolean getHighLow(){
+    return highLow;
+  }
+
   @Override
   public void periodic()
   {
@@ -149,6 +170,26 @@ public class SwerveSubsystem extends SubsystemBase
       swerveDrive.updateOdometry();
       vision.updatePoseEstimation(swerveDrive);
     }
+    
+    boolean targetVisible = false;
+    var results = camera.getAllUnreadResults();
+        if (!results.isEmpty()) {
+            // Camera processed a new frame since last
+            // Get the last one in the list.
+            var result = results.get(results.size() - 1);
+            if (result.hasTargets()) {
+                // At least one AprilTag was seen by the camera
+                for (var target : result.getTargets()) {
+                    if (target.getFiducialId() == 6) {
+                        // Found Tag 7, record its information
+                        trackedTarget = target;
+                    }
+                }
+            }
+        }
+
+    
+    SmartDashboard.putBoolean("Vision Target Visible", targetVisible);
   }
 
   @Override
@@ -247,20 +288,26 @@ public class SwerveSubsystem extends SubsystemBase
    *
    * @return A {@link Command} which will run the alignment.
    */
-  public Command aimAtTarget(Cameras camera)
+  public Command aimAtTarget()
   {
-
     return run(() -> {
-      Optional<PhotonPipelineResult> resultO = camera.getBestResult();
-      if (resultO.isPresent())
-      {
-        var result = resultO.get();
-        if (result.hasTargets())
-        {
-          drive(getTargetSpeeds(0,
-                                0,
-                                Rotation2d.fromDegrees(result.getBestTarget()
-                                                             .getYaw()))); // Not sure if this will work, more math may be required.
+      double targetYaw = 0;
+      var results = camera.getAllUnreadResults();
+      if (!results.isEmpty()) {
+          // Camera processed a new frame since last
+          // Get the last one in the list.
+          var result = results.get(results.size() - 1);
+          if (result.hasTargets()) {
+              // At least one AprilTag was seen by the camera
+              for (var target : result.getTargets()) {
+                  if (target.getFiducialId() == 6) {
+                      // Found Tag 7, record its information
+                      targetYaw = target.getYaw();
+                  }
+              }
+              drive(getTargetSpeeds(0,
+                                  0,
+                                  Rotation2d.fromDegrees(targetYaw))); // Not sure if this will work, more math may be required.
         }
       }
     });
@@ -402,12 +449,14 @@ public class SwerveSubsystem extends SubsystemBase
    * @param speedInMetersPerSecond the speed at which to drive in meters per second
    * @return a Command that drives the swerve drive to a specific distance at a given speed
    */
-  public Command driveToDistanceCommand(double distanceInMeters, double speedInMetersPerSecond)
-  {
-    return run(() -> drive(new ChassisSpeeds(speedInMetersPerSecond, 0, 0)))
-        .until(() -> swerveDrive.getPose().getTranslation().getDistance(new Translation2d(0, 0)) >
-                     distanceInMeters);
-  }
+  // public Command driveToDistanceCommand(double speedInMetersPerSecond)
+  // {
+
+  //   final doubledistanceInMeters = PhotonUtils.calculateDistanceToTargetMeters(Units.inchesToMeters(8.5), Units.inchesToMeters(15.25), Units.degreesToRadians(0), trackedTarget.pitch);
+  //   return run(() -> drive(new ChassisSpeeds(speedInMetersPerSecond, 0, 0)))
+  //       .until(() -> swerveDrive.getPose().getTranslation().getDistance(new Translation2d(0, 0)) >
+  //                    distanceInMeters);
+  // }
 
   /**
    * Replaces the swerve module feedforward with a new SimpleMotorFeedforward object.

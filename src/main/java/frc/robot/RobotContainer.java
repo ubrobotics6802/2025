@@ -35,6 +35,9 @@ import frc.robot.subsystems.swervedrive.SwerveSubsystem;
 import frc.robot.subsystems.Wrist;
 import frc.robot.subsystems.Intake;
 import java.io.File;
+
+import org.photonvision.PhotonCamera;
+
 import swervelib.SwerveInputStream;
 
 /**
@@ -52,6 +55,8 @@ public class RobotContainer
   private final int leftY = 2;
   private final int rightX = 0;
   private final int rightY = 1;
+  
+  public PhotonCamera camera = new PhotonCamera("FrontCam");
 
   SendableChooser<Command> autoChooser;
 
@@ -67,6 +72,7 @@ public class RobotContainer
   private final Elevator elevator;
   private final Intake intake;
   private final Wrist wrist;
+  
 
   // Buttons for controlling the elevator
   
@@ -74,7 +80,6 @@ public class RobotContainer
   private final Trigger elevatorL3Button = new Trigger(() -> operatorController.getRawButton(5));
   private final Trigger elevatorL2Button = new Trigger(() -> operatorController.getRawButton(20));
   private final Trigger elevatorL1Button = new Trigger(() -> operatorController.getRawButton(7));
-  private final Trigger elevatorDownButton = new Trigger(() -> operatorController.getRawButton(99));
   private final Trigger elevatorCollectButton = new Trigger(() -> operatorController.getRawButton(11));
 
   // Buttons for controlling the intake
@@ -83,12 +88,11 @@ public class RobotContainer
 
   // Buttons for controlling the wrist
   
-  private final Trigger wristCollectButton = new Trigger(() -> operatorController.getRawButton(19));
-  private final Trigger wristUpButton = new Trigger(() -> operatorController.getRawButton(50));
-  private final Trigger wristScoreButton = new Trigger(() -> operatorController.getRawButton(17));
+  private final Trigger coralRightButton = new Trigger(() -> operatorController.getRawButton(19));
+  private final Trigger wristUpButton = new Trigger(() -> driverController.getRawButton(2));
+  private final Trigger coralLeftButton = new Trigger(() -> operatorController.getRawButton(17));
 
   // Buttons for controlling ratchet mode
-  private final Trigger ratchetOpenButton = new Trigger(() -> operatorController.getRawButton(12));
   private final Trigger ratchetCloseButton = new Trigger(() -> operatorController.getRawButton(18));
 
   private final Trigger climbButton = new Trigger(() -> driverController.getRawButton(1));
@@ -100,8 +104,10 @@ public class RobotContainer
   Trigger backReefButton = new Trigger(() -> operatorController.getRawButton(12));
   Trigger frontLeftReefButton = new Trigger(() -> operatorController.getRawButton(16));
   Trigger backLeftReefButton = new Trigger(() -> operatorController.getRawButton(4));
-  Trigger frontRightReefButton = new Trigger(() -> operatorController.getRawButton(10));
+  Trigger frontRightReefButton = new Trigger(() -> operatorController.getRawButton(14));
   Trigger backRightReefButton = new Trigger(() -> operatorController.getRawButton(9));
+
+  Trigger visionTestButton = new Trigger(() -> operatorController.getRawButton(10));
 
 
 
@@ -130,14 +136,14 @@ SwerveInputStream driveDirectAngleToDestinationFront = driveAngularVelocity.copy
 SwerveInputStream driveDirectAngleToDestinationBack = driveAngularVelocity.copy().withControllerHeadingAxis(() -> 0, () -> -1)
                                                            .headingWhile(true);
                                                            
-SwerveInputStream driveDirectAngleToDestinationFrontLeft = driveAngularVelocity.copy().withControllerHeadingAxis(() -> -.5, () -> .866)
+SwerveInputStream driveDirectAngleToDestinationFrontLeft = driveAngularVelocity.copy().withControllerHeadingAxis(() -> -.866, () -> .5)
                                                            .headingWhile(true);
-SwerveInputStream driveDirectAngleToDestinationBackLeft = driveAngularVelocity.copy().withControllerHeadingAxis(() -> -.5, () -> -.866)
+SwerveInputStream driveDirectAngleToDestinationBackLeft = driveAngularVelocity.copy().withControllerHeadingAxis(() -> -.866, () -> -.5)
                                                            .headingWhile(true);
-SwerveInputStream driveDirectAngleToDestinationFrontRight = driveAngularVelocity.copy().withControllerHeadingAxis(() -> .5, () -> .866)
+SwerveInputStream driveDirectAngleToDestinationFrontRight = driveAngularVelocity.copy().withControllerHeadingAxis(() -> .866, () -> .5)
                                                            .headingWhile(true);
                                                            
-SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.copy().withControllerHeadingAxis(() -> .5, () -> -.866)
+SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.copy().withControllerHeadingAxis(() -> .866, () -> -.5)
                                                            .headingWhile(true);
                                                         
 
@@ -162,9 +168,7 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
   public RobotContainer()
   {
 
-
-    autoChooser = AutoBuilder.buildAutoChooser();
-    SmartDashboard.putData("autoChooser", autoChooser);
+    
 
     SparkMaxConfig intakeConfig = new SparkMaxConfig();
     intakeConfig
@@ -189,10 +193,19 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
 
     
     NamedCommands.registerCommand("raiseElevator", elevator.setElevatorPositionCommand(15));
+    NamedCommands.registerCommand("raisel4", Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
+    NamedCommands.registerCommand("scoreCoral", new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? .5 : .5), () ->wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE)));
+    NamedCommands.registerCommand("centerWheels", drivebase.centerModulesCommand());
+    
+    autoChooser = AutoBuilder.buildAutoChooser();
+    SmartDashboard.putData("autoChooser", autoChooser);
+
+    
     // AbsoluteDriveAdv closAbsoluteDriveAdv = new AbsoluteDriveAdv(drivebase, driverController.getRawAxis(1), driverController.getRawAxis(0), driverController.getRawAxis(3), null, null, null, null, null)
     // Configure the trigger bindings
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
+    
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
   }
 
@@ -250,15 +263,20 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     Command driveDestinationAngleBackRight = drivebase.driveFieldOriented(driveDirectAngleToDestinationBackRight);
 
     elevatorL4Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
-    elevatorL3Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT), wrist.setPositionCommand(intake.getIntakeRan() ? Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE : Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
-    elevatorL2Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT), wrist.setPositionCommand(intake.getIntakeRan() ? Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE : Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
+    elevatorL3Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
+    elevatorL2Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
     elevatorL1Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
     elevatorCollectButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_COLLECT_ANGLE)));
-    elevatorDownButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(0), wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE)));
+    //elevatorDownButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(0), wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE)));
     
     intakeInButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED), () -> intake.setSpeed(0), intake));
     intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? Constants.IntakeConstants.INTAKE_OUT_SPEED : .5), () -> intake.setSpeed(0), intake));
     intakeOutButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
+
+    coralLeftButton.onTrue(driveDestinationAngleBackRight);
+    coralRightButton.onTrue(driveDestinationAngleBackLeft);
+
+    wristUpButton.onTrue(wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE));
 
     frontLeftReefButton.onTrue((driveDestinationAngleFrontLeft));
     frontRightReefButton.onTrue((driveDestinationAngleFrontRight));
@@ -270,8 +288,9 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     //ratchetOpenButton.whileTrue(new InstantCommand(()-> elevator.setPosition(2500), elevator));
     ratchetCloseButton.whileTrue(new InstantCommand(()-> elevator.toggleServo(), elevator));
 
+
    
-    climbButton.whileTrue(new StartEndCommand(() -> elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER), () -> elevator.setPower(0), elevator));
+    climbButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
 
     Command driveFieldOrientedDirectAngle      = drivebase.driveFieldOriented(driveDirectAngle);
     Command driveFieldOrientedAnglularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
