@@ -90,7 +90,7 @@ public void setPower(double power) {
     return run(() -> 
      {this.position = position; 
       System.out.println(position);
-      elevatorMotorRight.getClosedLoopController().setReference(position, ControlType.kPosition);}).withName("Elevator Set Position");
+      elevatorMotorRight.getClosedLoopController().setReference(position, ControlType.kPosition);}).withName("Elevator Set Positions");
   }
 
   public double getElevatorPosition(){
