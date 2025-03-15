@@ -109,12 +109,20 @@ public class Vision
    *                    itself correctly.
    * @return The target pose of the AprilTag.
    */
-  public static Pose2d getAprilTagPose(int aprilTag, Transform2d robotOffset)
+  public static Pose2d getAprilTagPose(int aprilTag, Pose2d robotOffset)
   {
     Optional<Pose3d> aprilTagPose3d = fieldLayout.getTagPose(aprilTag);
-    if (aprilTagPose3d.isPresent())
+    if (aprilTagPose3d.isPresent() && robotOffset != null)
     {
-      return aprilTagPose3d.get().toPose2d().transformBy(robotOffset);
+
+      Pose2d pose = aprilTagPose3d.get().toPose2d();
+      Transform2d transform = pose.minus(robotOffset);
+
+      if(robotOffset == null){
+        return aprilTagPose3d.get().toPose2d();
+      }
+      else
+        return aprilTagPose3d.get().toPose2d().transformBy(transform);
     } else
     {
       throw new RuntimeException("Cannot get AprilTag " + aprilTag + " from field " + fieldLayout.toString());
@@ -143,7 +151,7 @@ public class Vision
     for (Cameras camera : Cameras.values())
     {
       Optional<EstimatedRobotPose> poseEst = getEstimatedGlobalPose(camera);
-      if (poseEst.isPresent())
+    if (poseEst != null && poseEst.isPresent())
       {
         var pose = poseEst.get();
         swerveDrive.addVisionMeasurement(pose.estimatedPose.toPose2d(),
@@ -338,12 +346,12 @@ public class Vision
     /**
      * Center Camera
      */
-    CENTER_CAM("FrontCam",
+    CENTER_CAM("FrontCamera",
                new Rotation3d(0, Units.degreesToRadians(0), 0),
                new Translation3d(Units.inchesToMeters(0),
                                  Units.inchesToMeters(15),
                                  Units.inchesToMeters(8.5)),
-               VecBuilder.fill(4, 4, 8), VecBuilder.fill(0.5, 0.5, 1));
+               VecBuilder.fill(.1, .1, 5), VecBuilder.fill(0.1, 0.1, 5));
 
     /**
      * Latency alert to use when high latency is detected.

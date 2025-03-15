@@ -89,7 +89,7 @@ public void setPower(double power) {
   public Command setElevatorPositionCommand(double position) {
     return run(() -> 
      {this.position = position; 
-      System.out.println(position);
+      //System.out.println(position);
       elevatorMotorRight.getClosedLoopController().setReference(position, ControlType.kPosition);}).withName("Elevator Set Positions");
   }
 

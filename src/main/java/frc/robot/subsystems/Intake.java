@@ -12,6 +12,7 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.SharpIR;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -21,11 +22,13 @@ import frc.robot.Constants.IntakeConstants;
 
 public class Intake extends SubsystemBase {
   /** Creates a new Intake. */
-  boolean intakeRan = true;
+  boolean shouldStop = false;
+  Timer timer = new Timer();
+  boolean algaeMode = false;
   
   private SparkMax intakeMotorLeft;
   private SparkMax intakeMotorRight;
-  //public SharpIR sharp = SharpIR.GP2Y0A21YK0F(3);
+  public SharpIR sharp = SharpIR.GP2Y0A21YK0F(0);
 
   double speed = 0;
   public Intake(SparkMaxConfig config) {
@@ -40,18 +43,49 @@ public class Intake extends SubsystemBase {
     // This method will be called once per scheduler run    
     intakeMotorLeft.set(speed);
     intakeMotorRight.set(-speed);
-    //System.out.println(sharp.getRangeInches());
     //System.out.println(sensor.getColor());
 
   }
   public void setSpeed(double speed) {
-    if(speed == Constants.IntakeConstants.INTAKE_IN_SPEED){
-      intakeRan = true;
+        if(algaeMode){
+          if(speed == Constants.IntakeConstants.INTAKE_OUT_SPEED){
+            this.speed = 1;
+          }
+          else{
+            this.speed = speed;
+          }
+        }else{
+          this.speed = speed;
+        }
+        
+  }
+
+  public void setAlgaeMode(boolean mode){
+    algaeMode = mode;
+  }
+
+  public boolean shouldStop(){
+    double value = sharp.getRangeInches();
+    if(!shouldStop)
+    if(this.speed == Constants.IntakeConstants.INTAKE_IN_SPEED && value < 4 && !shouldStop && !algaeMode){
+      shouldStop = true;
+      timer.start();
+    }
+
+    if(shouldStop && timer.hasElapsed(1)){
+      
+      shouldStop = false;
+      timer.stop();
+      timer.reset();
+
+      if(value > 4){
+        return false;
+      }
+      return true;
     }
     else{
-      intakeRan = false;
+      return false;
     }
-    this.speed = speed;
   }
 
   public void stopIntake(){
@@ -60,9 +94,5 @@ public class Intake extends SubsystemBase {
 
   public Command setSpeedCommand(double speed){
     return run(()-> setSpeed(speed));
-  }
-
-  public boolean getIntakeRan(){
-    return intakeRan;
   }
 }

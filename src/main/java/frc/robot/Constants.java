@@ -55,14 +55,15 @@ public final class Constants
     public static final int INTAKE_MOTOR_LEFT_ID = 51;
     public static final double INTAKE_IN_SPEED = -0.5;
     public static final double INTAKE_OUT_SPEED = 0.5;
+    public static final double INTAKE_OUT_SLOW = 0.2;
   }
 
   public static final class WristConstants {
     public static final int WRIST_MOTOR_ID = 18;
-    public static final double WRIST_MAX_ANGLE = 3.2;
+    public static final double WRIST_MAX_ANGLE = 3.0;
     public static final double WRIST_COLLECT_ANGLE = 2.5;
     public static final double WRIST_HIGHER_SCORING_ANGLE = 1.2;
-    public static final double WRIST_LOWER_SCORING_ANGLE = 1.2;  
+    public static final double WRIST_LOWER_SCORING_ANGLE = 1.21;  
   }
 
   public static class OperatorConstants

@@ -89,13 +89,13 @@ public class RobotContainer
   // Buttons for controlling the wrist
   
   private final Trigger coralRightButton = new Trigger(() -> operatorController.getRawButton(19));
-  private final Trigger wristUpButton = new Trigger(() -> driverController.getRawButton(2));
+  private final Trigger strafeRightButton = new Trigger(() -> driverController.getRawButton(2));
   private final Trigger coralLeftButton = new Trigger(() -> operatorController.getRawButton(17));
 
   // Buttons for controlling ratchet mode
   private final Trigger ratchetCloseButton = new Trigger(() -> operatorController.getRawButton(18));
 
-  private final Trigger climbButton = new Trigger(() -> driverController.getRawButton(1));
+  private final Trigger strafeLeftButton = new Trigger(() -> driverController.getRawButton(1));
 
   private final Trigger driveModeButton = new Trigger(() -> driverController.getRawButton(4));
   private final Trigger robotModeButton = new Trigger(() -> driverController.getRawButton(3));
@@ -108,6 +108,8 @@ public class RobotContainer
   Trigger backRightReefButton = new Trigger(() -> operatorController.getRawButton(9));
 
   Trigger visionTestButton = new Trigger(() -> operatorController.getRawButton(10));
+
+  Trigger algaeMode = new Trigger(this::triggerAlgae);
 
 
 
@@ -158,6 +160,33 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
                                                             .scaleTranslation(0.8)
                                                             .allianceRelativeControl(false)
                                                             .robotRelative(true);
+
+    SwerveInputStream strafeRobotLeft = SwerveInputStream.of(drivebase.getSwerveDrive(),
+    () -> driverController.getRawAxis(rightY) * 1,
+    () -> .2)
+.withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
+.deadband(OperatorConstants.DEADBAND)
+.scaleTranslation(0.8)
+.allianceRelativeControl(false)
+.robotRelative(true).headingWhile(true);
+
+SwerveInputStream strafeRobotRight = SwerveInputStream.of(drivebase.getSwerveDrive(),
+    () -> driverController.getRawAxis(rightY) * 1,
+    () -> -.2)
+.withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
+.deadband(OperatorConstants.DEADBAND)
+.scaleTranslation(0.8)
+.allianceRelativeControl(false)
+.robotRelative(true).headingWhile(true);
+
+SwerveInputStream robotForward = SwerveInputStream.of(drivebase.getSwerveDrive(),
+    () -> -.3,
+    () -> driverController.getRawAxis(rightX) * -1)
+.withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
+.deadband(OperatorConstants.DEADBAND)
+.scaleTranslation(0.8)
+.allianceRelativeControl(false)
+.robotRelative(true).headingWhile(true);
 
   
   
@@ -269,14 +298,16 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     elevatorCollectButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_COLLECT_ANGLE)));
     //elevatorDownButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(0), wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE)));
     
-    intakeInButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED), () -> intake.setSpeed(0), intake));
-    intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? Constants.IntakeConstants.INTAKE_OUT_SPEED : .5), () -> intake.setSpeed(0), intake));
+    intakeInButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED), () -> intake.setSpeed(0), intake).until(intake::shouldStop));
+    intakeInButton.onTrue(wrist.setPositionCommand(Constants.WristConstants.WRIST_COLLECT_ANGLE));
+    intakeInButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
+    intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? Constants.IntakeConstants.INTAKE_OUT_SLOW : Constants.IntakeConstants.INTAKE_OUT_SPEED), () -> intake.setSpeed(0), intake));
     intakeOutButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
 
     coralLeftButton.onTrue(driveDestinationAngleBackRight);
     coralRightButton.onTrue(driveDestinationAngleBackLeft);
 
-    wristUpButton.onTrue(wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE));
+    //wristUpButton.onTrue(wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE));
 
     frontLeftReefButton.onTrue((driveDestinationAngleFrontLeft));
     frontRightReefButton.onTrue((driveDestinationAngleFrontRight));
@@ -290,21 +321,31 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
 
 
    
-    climbButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
+    visionTestButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
 
     Command driveFieldOrientedDirectAngle      = drivebase.driveFieldOriented(driveDirectAngle);
     Command driveFieldOrientedAnglularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
     Command driveRobotOrientedAngularVelocity  = drivebase.driveFieldOriented(driveRobotOriented);
+    Command strafeLeftCommand = drivebase.driveFieldOriented(strafeRobotLeft);
+    Command strafeRightCommand = drivebase.driveFieldOriented(strafeRobotRight);
+    Command driveStraightCommand = drivebase.driveFieldOriented(robotForward);
+    Command driveStraightCommandRight = drivebase.driveFieldOriented(robotForward);
+    visionTestButton.whileTrue(drivebase.sysIdAngleMotorCommand());
 
     driveModeButton.onTrue(driveFieldOrientedDirectAngle);
     robotModeButton.onTrue(driveRobotOrientedAngularVelocity);
+    algaeMode.onTrue(new InstantCommand(()-> {wrist.setAlgaeMode(true); intake.setAlgaeMode(true);}));
+    algaeMode.onFalse(new InstantCommand(()-> {wrist.setAlgaeMode(false); intake.setAlgaeMode(false);}));
 
+    strafeLeftButton.onTrue(strafeLeftCommand.until(drivebase::leftLidarClear).andThen(drivebase.centerModulesCommand().withTimeout(.5)).andThen(driveStraightCommand.withTimeout(.4)));
+    strafeRightButton.onTrue(strafeRightCommand.until(drivebase::rightLidarClear).andThen(drivebase.centerModulesCommand().withTimeout(.5)).andThen(driveStraightCommandRight.withTimeout(.4)));
+  
     if (RobotBase.isSimulation())
     {
      // drivebase.setDefaultCommand(driveFieldOrientedDirectAngleKeyboard);
     } else
     {
-      drivebase.setDefaultCommand(driveFieldOrientedDirectAngle);
+      drivebase.setDefaultCommand(driveRobotOrientedAngularVelocity);
     }
 
     if (Robot.isSimulation())
@@ -348,6 +389,10 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
   {
     // An example command will be run in autonomous
     return autoChooser.getSelected();
+  }
+
+  public boolean triggerAlgae(){
+    return driverController.getRawAxis(5) > 0;
   }
 
   // public void setMotorBrake(boolean brake)

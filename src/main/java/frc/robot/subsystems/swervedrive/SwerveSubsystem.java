@@ -72,7 +72,8 @@ public class SwerveSubsystem extends SubsystemBase
   private final SwerveDrive         swerveDrive;
 
   
-  private LaserCan lidar = new LaserCan(55);
+  private LaserCan lidarLeft = new LaserCan(55);
+  private LaserCan lidarRight = new LaserCan(56);
   public boolean highLow = false;
   PhotonCamera camera = new PhotonCamera("FrontCamera");
   PhotonTrackedTarget trackedTarget = null;
@@ -88,7 +89,7 @@ public class SwerveSubsystem extends SubsystemBase
   /**
    * PhotonVision class to keep an accurate odometry.
    */
-  private Vision vision;
+  public Vision vision;
 
   private boolean fieldOrientedMode = true;
 
@@ -127,6 +128,7 @@ public class SwerveSubsystem extends SubsystemBase
       // Stop the odometry thread if we are using vision that way we can synchronize updates better.
       swerveDrive.stopOdometryThread();
     }
+    //swerveDrive.replaceSwerveModuleFeedforward(new SimpleMotorFeedforward(.433575, 2.504525, .5070025));
     setupPathPlanner();
   }
 
@@ -142,7 +144,7 @@ public class SwerveSubsystem extends SubsystemBase
                                   controllerCfg,
                                   Constants.MAX_SPEED,
                                   new Pose2d(new Translation2d(Meter.of(2), Meter.of(0)),
-                                             Rotation2d.fromDegrees(180)));
+                                             Rotation2d.fromDegrees(0)));
   }
 
   /**
@@ -161,6 +163,20 @@ public class SwerveSubsystem extends SubsystemBase
     return highLow;
   }
 
+  public boolean leftLidarClear(){
+    int lidarValue = lidarLeft.getMeasurement().distance_mm;
+    return lidarValue > 140 || lidarValue == 0;
+  }
+
+  public boolean rightLidarClear(){
+    int lidarValue = lidarRight.getMeasurement().distance_mm;
+    return lidarValue > 140 || lidarValue == 0;
+  }
+
+  public boolean lidarDistance(){
+    return lidarRight.getMeasurement().distance_mm > 200;
+  }
+
   @Override
   public void periodic()
   {
@@ -170,26 +186,9 @@ public class SwerveSubsystem extends SubsystemBase
       swerveDrive.updateOdometry();
       vision.updatePoseEstimation(swerveDrive);
     }
-    
-    boolean targetVisible = false;
-    var results = camera.getAllUnreadResults();
-        if (!results.isEmpty()) {
-            // Camera processed a new frame since last
-            // Get the last one in the list.
-            var result = results.get(results.size() - 1);
-            if (result.hasTargets()) {
-                // At least one AprilTag was seen by the camera
-                for (var target : result.getTargets()) {
-                    if (target.getFiducialId() == 6) {
-                        // Found Tag 7, record its information
-                        trackedTarget = target;
-                    }
-                }
-            }
-        }
+    SmartDashboard.putNumber("lidar left", lidarLeft.getMeasurement().distance_mm);
+    SmartDashboard.putNumber("lidar right", lidarRight.getMeasurement().distance_mm);
 
-    
-    SmartDashboard.putBoolean("Vision Target Visible", targetVisible);
   }
 
   @Override
@@ -347,6 +346,29 @@ public class SwerveSubsystem extends SubsystemBase
   }
 
   /**
+   * Use PathPlanner Path finding to go to a point on the field.
+   *
+   * @param pose Target {@link Pose2d} to go to.
+   * @return PathFinding command
+   */
+  public Command driveToPose(int aprilTagId)
+  {
+// Create the constraints to use while pathfinding
+    PathConstraints constraints = new PathConstraints(
+        swerveDrive.getMaximumChassisVelocity(), 4.0,
+        swerveDrive.getMaximumChassisAngularVelocity(), Units.degreesToRadians(720));
+
+    
+
+// Since AutoBuilder is configured, we can use it to build pathfinding commands
+    return AutoBuilder.pathfindToPose(
+      vision.getAprilTagPose(aprilTagId, getPose()),
+        constraints,
+        edu.wpi.first.units.Units.MetersPerSecond.of(0) // Goal end velocity in meters/sec
+                                     );
+  }
+
+  /**
    * Drive with {@link SwerveSetpointGenerator} from 254, implemented by PathPlanner.
    *
    * @param robotRelativeChassisSpeed Robot relative {@link ChassisSpeeds} to achieve.
@@ -449,14 +471,11 @@ public class SwerveSubsystem extends SubsystemBase
    * @param speedInMetersPerSecond the speed at which to drive in meters per second
    * @return a Command that drives the swerve drive to a specific distance at a given speed
    */
-  // public Command driveToDistanceCommand(double speedInMetersPerSecond)
-  // {
-
-  //   final doubledistanceInMeters = PhotonUtils.calculateDistanceToTargetMeters(Units.inchesToMeters(8.5), Units.inchesToMeters(15.25), Units.degreesToRadians(0), trackedTarget.pitch);
-  //   return run(() -> drive(new ChassisSpeeds(speedInMetersPerSecond, 0, 0)))
-  //       .until(() -> swerveDrive.getPose().getTranslation().getDistance(new Translation2d(0, 0)) >
-  //                    distanceInMeters);
-  // }
+  public Command driveToDistanceCommand(double distanceInMeters, double speedInMetersPerSecond)
+  {return run(() -> drive(new ChassisSpeeds(speedInMetersPerSecond, 0, 0)))
+        .until(() -> swerveDrive.getPose().getTranslation().getDistance(new Translation2d(0, 0)) >
+                     distanceInMeters);
+  }
 
   /**
    * Replaces the swerve module feedforward with a new SimpleMotorFeedforward object.

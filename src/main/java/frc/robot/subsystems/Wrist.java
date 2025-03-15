@@ -19,6 +19,7 @@ import frc.robot.Constants.WristConstants;
 public class Wrist extends SubsystemBase {
   /** Creates a new Wrist. */
  private SparkMax wristMotor;
+ boolean algaeMode;
  public double position = Constants.WristConstants.WRIST_MAX_ANGLE;
   public Wrist(SparkMaxConfig config) {
     config.inverted(true);
@@ -37,7 +38,21 @@ public class Wrist extends SubsystemBase {
     wristMotor.getClosedLoopController().setReference(position, ControlType.kPosition);
   }
   public void setPosition(double position) {
+    if(algaeMode){
+      if(position == Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE){
+        this.position = Constants.WristConstants.WRIST_MAX_ANGLE;
+      }
+      else{
+        this.position = position;
+      }
+    }else{
     this.position = position;
+    }
+  }
+
+  public void setAlgaeMode(boolean mode){
+    System.out.println("Toggle " + mode);
+    algaeMode = mode;
   }
 
   public Command setPositionCommand(double position) {
