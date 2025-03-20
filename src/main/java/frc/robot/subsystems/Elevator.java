@@ -8,6 +8,9 @@ import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+import java.util.function.DoubleSupplier;
+
 import com.revrobotics.*;
 import com.revrobotics.servohub.ServoChannel;
 import com.revrobotics.servohub.ServoChannel.ChannelId;
@@ -19,6 +22,7 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
+import frc.robot.Constants;
 import frc.robot.Constants.ElevatorConstants;
 
 public class Elevator extends SubsystemBase {
@@ -28,7 +32,7 @@ public class Elevator extends SubsystemBase {
   public boolean servoOn = true;
   // Initialize the servo hub
   ServoHub m_servoHub = new ServoHub(2);
-  double targetPosition = 13;
+  double targetPosition = Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT;
 
   // Obtain a servo channel controller
   ServoChannel servo = m_servoHub.getServoChannel(ChannelId.kChannelId5);
@@ -65,6 +69,7 @@ config.closedLoop
     else{
       setPosition(500);
     }
+    //System.out.println(targetPosition);
     SmartDashboard.putBoolean("Elevator Open", servoOn);
   }
   public void toggleServo() {
@@ -87,17 +92,19 @@ public void setPower(double power) {
   }
 
   public void setTargetElevatorPosition(double position){
+    //System.out.println("changedPosition to: " + position);
     targetPosition = position;
   }
 
   public Command setElevatorPositionCommand(){
-    return setElevatorPositionCommand(targetPosition);
+    return setElevatorPositionCommand(()->targetPosition);
   }
 
-  public Command setElevatorPositionCommand(double position) {
+  public Command setElevatorPositionCommand(DoubleSupplier position) {
     return run(() -> 
-     {targetPosition = position; 
-      elevatorMotorRight.getClosedLoopController().setReference(targetPosition, ControlType.kPosition);}).withName("Elevator Set Positions");
+     {//targetPosition = position;
+      //System.out.println(targetPosition); 
+      elevatorMotorRight.getClosedLoopController().setReference(position.getAsDouble(), ControlType.kPosition);}).withName("Elevator Set Positions");
   }
 
   public double getElevatorPosition(){

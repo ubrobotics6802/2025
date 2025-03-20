@@ -42,13 +42,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "scoreCoral"
-                }
-              },
-              {
-                "type": "wait",
-                "data": {
-                  "waitTime": 1.0
+                  "name": "LeftAutoAlign"
                 }
               }
             ]

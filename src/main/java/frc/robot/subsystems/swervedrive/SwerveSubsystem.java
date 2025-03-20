@@ -271,11 +271,13 @@ public class SwerveSubsystem extends SubsystemBase
     return run(()->{
       if(fieldOrientedMode){
         setDefaultCommand(robotOriented);
-        swerveDrive.setHeadingCorrection(true);
+        //swerveDrive.setHeadingCorrection(true);
+        swerveDrive.setCosineCompensator(true);
       }
       else{
         setDefaultCommand(fieldOriented);
-        swerveDrive.setHeadingCorrection(false);
+        //swerveDrive.setHeadingCorrection(false);
+        swerveDrive.setCosineCompensator(true);
       }    
       fieldOrientedMode = !fieldOrientedMode;
       }

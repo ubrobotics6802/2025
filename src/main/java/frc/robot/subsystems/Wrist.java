@@ -5,6 +5,9 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+
+import java.util.function.DoubleSupplier;
+
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
@@ -20,7 +23,7 @@ public class Wrist extends SubsystemBase {
   /** Creates a new Wrist. */
  private SparkMax wristMotor;
  boolean algaeMode;
- public double targetPosition = Constants.WristConstants.WRIST_MAX_ANGLE;
+ public double targetPosition = Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE;
   public Wrist(SparkMaxConfig config) {
     config.inverted(true);
     config.absoluteEncoder.positionConversionFactor(6).zeroOffset(.70);
@@ -56,10 +59,10 @@ public class Wrist extends SubsystemBase {
   }
 
   public Command setPositionCommand(){
-    return setPositionCommand(targetPosition);
+    return setPositionCommand(()->targetPosition);
   }
 
-  public Command setPositionCommand(double position) {
-    return run(() -> {targetPosition = position; wristMotor.getClosedLoopController().setReference(position, ControlType.kPosition);}).withName("Wrist SetPosition");
+  public Command setPositionCommand(DoubleSupplier position) {
+    return run(() -> {wristMotor.getClosedLoopController().setReference(position.getAsDouble(), ControlType.kPosition);}).withName("Wrist SetPosition");
   }
 }
