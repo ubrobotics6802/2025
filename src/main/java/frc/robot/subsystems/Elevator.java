@@ -28,7 +28,7 @@ public class Elevator extends SubsystemBase {
   public boolean servoOn = true;
   // Initialize the servo hub
   ServoHub m_servoHub = new ServoHub(2);
-  double position = 13;
+  double targetPosition = 13;
 
   // Obtain a servo channel controller
   ServoChannel servo = m_servoHub.getServoChannel(ChannelId.kChannelId5);
@@ -86,14 +86,21 @@ public void setPower(double power) {
     elevatorMotorRight.getClosedLoopController().setReference(position, ControlType.kPosition);
   }
 
+  public void setTargetElevatorPosition(double position){
+    targetPosition = position;
+  }
+
+  public Command setElevatorPositionCommand(){
+    return setElevatorPositionCommand(targetPosition);
+  }
+
   public Command setElevatorPositionCommand(double position) {
     return run(() -> 
-     {this.position = position; 
-      //System.out.println(position);
-      elevatorMotorRight.getClosedLoopController().setReference(position, ControlType.kPosition);}).withName("Elevator Set Positions");
+     {targetPosition = position; 
+      elevatorMotorRight.getClosedLoopController().setReference(targetPosition, ControlType.kPosition);}).withName("Elevator Set Positions");
   }
 
   public double getElevatorPosition(){
-    return position;
+    return targetPosition;
   }
 }

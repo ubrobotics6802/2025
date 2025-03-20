@@ -20,7 +20,7 @@ public class Wrist extends SubsystemBase {
   /** Creates a new Wrist. */
  private SparkMax wristMotor;
  boolean algaeMode;
- public double position = Constants.WristConstants.WRIST_MAX_ANGLE;
+ public double targetPosition = Constants.WristConstants.WRIST_MAX_ANGLE;
   public Wrist(SparkMaxConfig config) {
     config.inverted(true);
     config.absoluteEncoder.positionConversionFactor(6).zeroOffset(.70);
@@ -35,18 +35,18 @@ public class Wrist extends SubsystemBase {
 
   public void periodic() {
     // This method will be called once per scheduler run
-    wristMotor.getClosedLoopController().setReference(position, ControlType.kPosition);
+    
   }
   public void setPosition(double position) {
     if(algaeMode){
-      if(position == Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE){
-        this.position = Constants.WristConstants.WRIST_MAX_ANGLE;
+      if(targetPosition == Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE){
+        targetPosition = Constants.WristConstants.WRIST_MAX_ANGLE;
       }
       else{
-        this.position = position;
+        targetPosition = position;
       }
     }else{
-    this.position = position;
+      targetPosition = position;
     }
   }
 
@@ -55,7 +55,11 @@ public class Wrist extends SubsystemBase {
     algaeMode = mode;
   }
 
+  public Command setPositionCommand(){
+    return setPositionCommand(targetPosition);
+  }
+
   public Command setPositionCommand(double position) {
-    return run(() -> setPosition(position)).withName("Wrist SetPosition");
+    return run(() -> {targetPosition = position; wristMotor.getClosedLoopController().setReference(position, ControlType.kPosition);}).withName("Wrist SetPosition");
   }
 }

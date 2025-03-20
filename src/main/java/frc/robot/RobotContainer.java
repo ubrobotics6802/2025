@@ -284,45 +284,14 @@ SwerveInputStream robotForward = SwerveInputStream.of(drivebase.getSwerveDrive()
    */
   private void configureBindings()
   {
+
+    //Setup drive commands
     Command driveDestinationAngleFront = drivebase.driveFieldOriented(driveDirectAngleToDestinationFront);
     Command driveDestinationAngleBack = drivebase.driveFieldOriented(driveDirectAngleToDestinationBack);
     Command driveDestinationAngleFrontLeft = drivebase.driveFieldOriented(driveDirectAngleToDestinationFrontLeft);
     Command driveDestinationAngleBackLeft = drivebase.driveFieldOriented(driveDirectAngleToDestinationBackLeft);
     Command driveDestinationAngleFrontRight = drivebase.driveFieldOriented(driveDirectAngleToDestinationFrontRight);
     Command driveDestinationAngleBackRight = drivebase.driveFieldOriented(driveDirectAngleToDestinationBackRight);
-
-    elevatorL4Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
-    elevatorL3Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
-    elevatorL2Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
-    elevatorL1Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
-    elevatorCollectButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_COLLECT_ANGLE)));
-    //elevatorDownButton.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(0), wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE)));
-    
-    intakeInButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED), () -> intake.setSpeed(0), intake).until(intake::shouldStop));
-    intakeInButton.onTrue(wrist.setPositionCommand(Constants.WristConstants.WRIST_COLLECT_ANGLE));
-    intakeInButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
-    intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? Constants.IntakeConstants.INTAKE_OUT_SLOW : Constants.IntakeConstants.INTAKE_OUT_SPEED), () -> intake.setSpeed(0), intake));
-    intakeOutButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
-
-    coralLeftButton.onTrue(driveDestinationAngleBackRight);
-    coralRightButton.onTrue(driveDestinationAngleBackLeft);
-
-    //wristUpButton.onTrue(wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE));
-
-    frontLeftReefButton.onTrue((driveDestinationAngleFrontLeft));
-    frontRightReefButton.onTrue((driveDestinationAngleFrontRight));
-    backRightReefButton.onTrue((driveDestinationAngleBackRight));
-    backLeftReefButton.onTrue((driveDestinationAngleBackLeft));
-    backReefButton.onTrue((driveDestinationAngleBack));
-    frontReefButton.onTrue((driveDestinationAngleFront));
-        
-    //ratchetOpenButton.whileTrue(new InstantCommand(()-> elevator.setPosition(2500), elevator));
-    ratchetCloseButton.whileTrue(new InstantCommand(()-> elevator.toggleServo(), elevator));
-
-
-   
-    visionTestButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
-
     Command driveFieldOrientedDirectAngle      = drivebase.driveFieldOriented(driveDirectAngle);
     Command driveFieldOrientedAnglularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
     Command driveRobotOrientedAngularVelocity  = drivebase.driveFieldOriented(driveRobotOriented);
@@ -330,15 +299,53 @@ SwerveInputStream robotForward = SwerveInputStream.of(drivebase.getSwerveDrive()
     Command strafeRightCommand = drivebase.driveFieldOriented(strafeRobotRight);
     Command driveStraightCommand = drivebase.driveFieldOriented(robotForward);
     Command driveStraightCommandRight = drivebase.driveFieldOriented(robotForward);
-    visionTestButton.whileTrue(drivebase.sysIdAngleMotorCommand());
+
+    frontLeftReefButton.onTrue((driveDestinationAngleFrontLeft));
+    frontRightReefButton.onTrue((driveDestinationAngleFrontRight));
+    backRightReefButton.onTrue((driveDestinationAngleBackRight));
+    backLeftReefButton.onTrue((driveDestinationAngleBackLeft));
+    backReefButton.onTrue((driveDestinationAngleBack));
+    frontReefButton.onTrue((driveDestinationAngleFront));    
+    coralLeftButton.onTrue(driveDestinationAngleBackRight);
+    coralRightButton.onTrue(driveDestinationAngleBackLeft);
 
     driveModeButton.onTrue(driveFieldOrientedDirectAngle);
     robotModeButton.onTrue(driveRobotOrientedAngularVelocity);
+
+    /**
+     * Elevator Button Flow:
+     * 1. Pushing cooresponding branch button will set the elevator's target height (setTargetPosition(position)).
+     * 2. Elevator stays in its current position until told to transition to target height (setElevatorPositionCommand())
+     * 3. If instant transition is needed in the case of reseting the height or an emergency, setElevatorPositionCommand(height) can still be used
+     */
+
+    // elevatorL4Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
+    // elevatorL3Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
+    // elevatorL2Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
+    // elevatorL1Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
+    
+    elevatorL4Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE);}));
+    elevatorL3Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
+    elevatorL2Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
+    elevatorL1Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
+    elevatorCollectButton.onTrue(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE));
+    
+    //Intake Buttons
+    intakeInButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED), () -> intake.setSpeed(0), intake).until(intake::shouldStop));
+    intakeInButton.onTrue(wrist.setPositionCommand(Constants.WristConstants.WRIST_COLLECT_ANGLE));
+    intakeInButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
+    intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? Constants.IntakeConstants.INTAKE_OUT_SLOW : Constants.IntakeConstants.INTAKE_OUT_SPEED), () -> intake.setSpeed(0), intake));
+    intakeOutButton.onFalse(wrist.setPositionCommand(Constants.WristConstants.WRIST_MAX_ANGLE));
     algaeMode.onTrue(new InstantCommand(()-> {wrist.setAlgaeMode(true); intake.setAlgaeMode(true);}));
     algaeMode.onFalse(new InstantCommand(()-> {wrist.setAlgaeMode(false); intake.setAlgaeMode(false);}));
 
-    strafeLeftButton.onTrue(strafeLeftCommand.until(drivebase::leftLidarClear).andThen(drivebase.centerModulesCommand().withTimeout(.5)).andThen(driveStraightCommand.withTimeout(.4)));
-    strafeRightButton.onTrue(strafeRightCommand.until(drivebase::rightLidarClear).andThen(drivebase.centerModulesCommand().withTimeout(.5)).andThen(driveStraightCommandRight.withTimeout(.4)));
+    //Climbing Buttons    
+    ratchetCloseButton.whileTrue(new InstantCommand(()-> elevator.toggleServo(), elevator));
+    visionTestButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
+
+    //Auto Score Buttons
+    strafeLeftButton.onTrue(strafeLeftCommand.until(drivebase::leftLidarClear).andThen(drivebase.centerModulesCommand().withTimeout(.5)).andThen(driveStraightCommand.withTimeout(.4)).andThen(getManipulatorScoringCommand()));
+    strafeRightButton.onTrue(strafeRightCommand.until(drivebase::rightLidarClear).andThen(drivebase.centerModulesCommand().withTimeout(.5)).andThen(driveStraightCommandRight.withTimeout(.4).andThen(getManipulatorScoringCommand())));
   
     if (RobotBase.isSimulation())
     {
@@ -378,6 +385,14 @@ SwerveInputStream robotForward = SwerveInputStream.of(drivebase.getSwerveDrive()
       // driverXbox.rightBumper().onTrue(Commands.none());
     }
 
+  }
+
+  public Command getManipulatorScoringCommand(double height, double angle){
+    return Commands.parallel(elevator.setElevatorPositionCommand(height), wrist.setPositionCommand(angle));
+  }
+  
+  public Command getManipulatorScoringCommand(){
+    return Commands.parallel(elevator.setElevatorPositionCommand(), wrist.setPositionCommand());
   }
 
   /**
