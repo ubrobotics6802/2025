@@ -18,7 +18,7 @@
   "Window": {
     "###/FMSInfo": {
       "Collapsed": "0",
-      "Pos": "60,60",
+      "Pos": "161,35",
       "Size": "181,167"
     },
     "###/SmartDashboard/Field": {
@@ -33,7 +33,7 @@
     },
     "###Joysticks": {
       "Collapsed": "0",
-      "Pos": "250,465",
+      "Pos": "202,514",
       "Size": "796,189"
     },
     "###Keyboard 0 Settings": {
@@ -43,8 +43,8 @@
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "399,253",
-      "Size": "750,236"
+      "Pos": "160,322",
+      "Size": "750,286"
     },
     "###NetworkTables Info": {
       "Collapsed": "1",
@@ -64,7 +64,7 @@
     "###Timing": {
       "Collapsed": "0",
       "Pos": "5,150",
-      "Size": "135,219"
+      "Size": "135,173"
     },
     "Debug##Default": {
       "Collapsed": "0",
@@ -74,7 +74,7 @@
     "Robot State": {
       "Collapsed": "0",
       "Pos": "7,20",
-      "Size": "92,116"
+      "Size": "99,116"
     }
   }
 }

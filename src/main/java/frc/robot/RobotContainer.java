@@ -163,43 +163,29 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
                                                             .allianceRelativeControl(false)
                                                             .robotRelative(true);
 
-    SwerveInputStream strafeRobotLeft = SwerveInputStream.of(drivebase.getSwerveDrive(),
-    () -> driverController.getRawAxis(rightY) * 1,
-    () -> .2)
-.withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
-.deadband(OperatorConstants.DEADBAND)
-.scaleTranslation(0.8)
-.allianceRelativeControl(false)
-.robotRelative(true);
 
-SwerveInputStream strafeRobotRight = SwerveInputStream.of(drivebase.getSwerveDrive(),
-    () -> driverController.getRawAxis(rightY) * 1,
-    () -> -.2)
-.withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
-.deadband(OperatorConstants.DEADBAND)
-.scaleTranslation(0.8)
-.allianceRelativeControl(false)
-.robotRelative(true);
 
-SwerveInputStream robotForward = SwerveInputStream.of(drivebase.getSwerveDrive(),
-    () -> -.3,
-    () -> driverController.getRawAxis(rightX) * -1)
-.withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
-.deadband(OperatorConstants.DEADBAND)
-.scaleTranslation(0.8)
-.allianceRelativeControl(false)
-.robotRelative(true);
-
-SwerveInputStream robotBackward = SwerveInputStream.of(drivebase.getSwerveDrive(),
-    () -> .3,
-    () -> driverController.getRawAxis(rightX) * -1)
-.withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
-.deadband(OperatorConstants.DEADBAND)
-.scaleTranslation(0.8)
-.allianceRelativeControl(false)
-.robotRelative(true);
-  
-  
+  //Right is negative left is positive
+    public SwerveInputStream getHorizonatalInputStream(double speed){
+      return SwerveInputStream.of(drivebase.getSwerveDrive(),
+      () -> driverController.getRawAxis(rightY) * 1,
+      () -> speed)
+    .withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
+    .deadband(OperatorConstants.DEADBAND)
+    .scaleTranslation(0.8)
+    .allianceRelativeControl(false)
+    .robotRelative(true);
+  }
+  public SwerveInputStream getVerticalInputStream(double speed){
+    return SwerveInputStream.of(drivebase.getSwerveDrive(),
+      () -> speed,
+      () -> driverController.getRawAxis(rightX) * -1)
+  .withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
+  .deadband(OperatorConstants.DEADBAND)
+  .scaleTranslation(0.8)
+  .allianceRelativeControl(false)
+  .robotRelative(true);
+  }
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -231,7 +217,7 @@ SwerveInputStream robotBackward = SwerveInputStream.of(drivebase.getSwerveDrive(
     wrist = new Wrist(config);
 
     
-    NamedCommands.registerCommand("raiseElevator", elevator.setElevatorPositionCommand(()->15).alongWith(wrist.setPositionCommand(() -> Constants.WristConstants.WRIST_MAX_ANGLE)));
+    NamedCommands.registerCommand("raiseElevator", getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_MAX_ANGLE));
     NamedCommands.registerCommand("raisel4", Commands.parallel(elevator.setElevatorPositionCommand(()->Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(()->Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
     NamedCommands.registerCommand("scoreCoral", new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? .5 : .5), () ->wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE)));
     NamedCommands.registerCommand("centerWheels", drivebase.centerModulesCommand());
@@ -251,43 +237,6 @@ SwerveInputStream robotBackward = SwerveInputStream.of(drivebase.getSwerveDrive(
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
   }
 
-  public double getYHeadingValue(){
-    double value = 0;
-    if(requestedAngle == 0){
-      value = 1;
-    } else if(requestedAngle == 60){
-      value = .866;
-    } else if(requestedAngle == 180){
-      value = -1;
-    } else if(requestedAngle == 120){
-      value = .866;
-    } else if(requestedAngle == 240){
-      value = -.866;
-    } else if(requestedAngle == 300){
-      value = .866;
-    }
-    return value;
-  }
-  
-  public double getXHeadingValue(){
-    double value = 0;
-    if(requestedAngle == 0){
-      value = 0;
-    } else if(requestedAngle == 60){
-      value = .5;
-    } else if(requestedAngle == 180){
-      value = 0;
-    } else if(requestedAngle == 120){
-      value = -.5;
-    } else if(requestedAngle == 240){
-      value = -.5;
-    } else if(requestedAngle == 300){
-      value = -.5;
-    }
-    return value;
-  }
-
-
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
    * {@link Trigger#Trigger(java.util.function.BooleanSupplier)} constructor with an arbitrary predicate, or via the
@@ -299,36 +248,18 @@ SwerveInputStream robotBackward = SwerveInputStream.of(drivebase.getSwerveDrive(
   {
 
     //Setup drive commands
-    Command driveDestinationAngleFront = drivebase.driveFieldOriented(driveDirectAngleToDestinationFront);
-    Command driveDestinationAngleBack = drivebase.driveFieldOriented(driveDirectAngleToDestinationBack);
-    Command driveDestinationAngleFrontLeft = drivebase.driveFieldOriented(driveDirectAngleToDestinationFrontLeft);
-    Command driveDestinationAngleBackLeft = drivebase.driveFieldOriented(driveDirectAngleToDestinationBackLeft);
-    Command driveDestinationAngleFrontRight = drivebase.driveFieldOriented(driveDirectAngleToDestinationFrontRight);
-    Command driveDestinationAngleBackRight = drivebase.driveFieldOriented(driveDirectAngleToDestinationBackRight);
     Command driveFieldOrientedDirectAngle      = drivebase.driveFieldOriented(driveDirectAngle);
     Command driveFieldOrientedAnglularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
     Command driveRobotOrientedAngularVelocity  = drivebase.driveFieldOriented(driveRobotOriented);
-    Command strafeLeftCommand = drivebase.driveFieldOriented(strafeRobotLeft);
-    Command strafeRightCommand = drivebase.driveFieldOriented(strafeRobotRight);
-    Command driveStraightCommand = drivebase.driveFieldOriented(robotForward);
-    Command driveStraightCommandAuto = drivebase.driveFieldOriented(robotForward);
-    Command driveStraightCommandRight = drivebase.driveFieldOriented(robotForward);
-    Command driveBackwardCommand = drivebase.driveFieldOriented(robotBackward);
 
-    // NamedCommands.registerCommand("LeftAutoAlign", strafeLeftCommand.until(drivebase::leftLidarClear)
-    // .andThen(driveStraightCommandAuto.withTimeout(.3))
-    // .andThen(getManipulatorScoringCommand().withTimeout(1))
-    // .andThen(driveBackwardCommand.withTimeout(.5))
-    // .andThen(new InstantCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SLOW))));
-
-    frontLeftReefButton.onTrue((driveDestinationAngleFrontLeft));
-    frontRightReefButton.onTrue((driveDestinationAngleFrontRight));
-    backRightReefButton.onTrue((driveDestinationAngleBackRight));
-    backLeftReefButton.onTrue((driveDestinationAngleBackLeft));
-    backReefButton.onTrue((driveDestinationAngleBack));
-    frontReefButton.onTrue((driveDestinationAngleFront));    
-    coralLeftButton.onTrue(driveDestinationAngleBackRight);
-    coralRightButton.onTrue(driveDestinationAngleBackLeft);
+    frontLeftReefButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationFrontLeft));
+    frontRightReefButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationFrontRight));
+    backRightReefButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationBackRight));
+    backLeftReefButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationBackLeft));
+    backReefButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationBack));
+    frontReefButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationFront));    
+    coralLeftButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationBackRight));
+    coralRightButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationBackLeft));
 
     driveModeButton.onTrue(driveFieldOrientedDirectAngle);
     robotModeButton.onTrue(driveRobotOrientedAngularVelocity);
@@ -339,11 +270,6 @@ SwerveInputStream robotBackward = SwerveInputStream.of(drivebase.getSwerveDrive(
      * 2. Elevator stays in its current position until told to transition to target height (setElevatorPositionCommand())
      * 3. If instant transition is needed in the case of reseting the height or an emergency, setElevatorPositionCommand(height) can still be used
      */
-
-    // elevatorL4Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
-    // elevatorL3Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
-    // elevatorL2Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
-    // elevatorL1Button.onTrue(Commands.parallel(elevator.setElevatorPositionCommand(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT), wrist.setPositionCommand(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE)));
     
     elevatorL4Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE);}));
     elevatorL3Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
@@ -364,49 +290,24 @@ SwerveInputStream robotBackward = SwerveInputStream.of(drivebase.getSwerveDrive(
     ratchetCloseButton.whileTrue(new InstantCommand(()-> elevator.toggleServo(), elevator));
     visionTestButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
 
+    NamedCommands.registerCommand("LeftAutoAlign", drivebase.driveFieldOriented(getHorizonatalInputStream(.2)).until(drivebase::leftLidarClear)
+    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.3))
+    .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE).withTimeout(1))
+    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.3)).withTimeout(.5))
+    .andThen(new InstantCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SLOW)).withTimeout(.5))
+    .andThen(wrist.setPositionCommand(()-> Constants.WristConstants.WRIST_MAX_ANGLE).withTimeout(.5))
+    .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE)));
 
     //Auto Score Buttons
-    strafeLeftButton.onTrue(strafeLeftCommand.until(drivebase::leftLidarClear).andThen(driveStraightCommand.withTimeout(.3)).andThen(getManipulatorScoringCommand().withTimeout(.5)));
-    strafeRightButton.onTrue(strafeRightCommand.until(drivebase::rightLidarClear).andThen(drivebase.centerModulesCommand().withTimeout(.5)).andThen(driveStraightCommandRight.withTimeout(.4)).andThen(getManipulatorScoringCommand().withTimeout(.5)));
-    //strafeRightButton.onTrue(drivebase.centerModulesCommand());
-    if (RobotBase.isSimulation())
-    {
-     // drivebase.setDefaultCommand(driveFieldOrientedDirectAngleKeyboard);
-    } else
-    {
-      drivebase.setDefaultCommand(driveRobotOrientedAngularVelocity);
-    }
+    strafeLeftButton.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(.2)).until(drivebase::leftLidarClear)
+    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.3))
+    .andThen(getManipulatorScoringCommand().withTimeout(.5)));
+    
+    strafeRightButton.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(-.2)).until(drivebase::rightLidarClear)
+    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.3))
+    .andThen(getManipulatorScoringCommand().withTimeout(.5)));
 
-    if (Robot.isSimulation())
-    {
-      // driverXbox.start().onTrue(Commands.runOnce(() -> drivebase.resetOdometry(new Pose2d(3, 3, new Rotation2d()))));
-      // driverXbox.button(1).whileTrue(drivebase.sysIdDriveMotorCommand());
-
-    }
-    if (DriverStation.isTest())
-    {
-      // drivebase.setDefaultCommand(driveFieldOrientedAnglularVelocity); // Overrides drive command above!
-
-      // driverXbox.x().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      // driverXbox.y().whileTrue(drivebase.driveToDistanceCommand(1.0, 0.2));
-      // driverXbox.start().onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      // driverXbox.back().whileTrue(drivebase.centerModulesCommand());
-      // driverXbox.leftBumper().onTrue(Commands.none());
-      // driverXbox.rightBumper().onTrue(Commands.none());
-    } else
-    {
-      // driverXbox.a().onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      // driverXbox.x().onTrue(Commands.runOnce(drivebase::addFakeVisionReading));
-      // driverXbox.b().whileTrue(
-      //     drivebase.driveToPose(
-      //         new Pose2d(new Translation2d(4, 4), Rotation2d.fromDegrees(0)))
-      //                         );
-      // driverXbox.start().whileTrue(Commands.none());
-      // driverXbox.back().whileTrue(Commands.none());
-      // driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      // driverXbox.rightBumper().onTrue(Commands.none());
-    }
-
+    drivebase.setDefaultCommand(driveRobotOrientedAngularVelocity);
   }
 
   public Command getManipulatorScoringCommand(double height, double angle){
