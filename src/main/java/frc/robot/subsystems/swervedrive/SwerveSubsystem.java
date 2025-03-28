@@ -138,6 +138,7 @@ public class SwerveSubsystem extends SubsystemBase
    * @param driveCfg      SwerveDriveConfiguration for the swerve.
    * @param controllerCfg Swerve Controller.
    */
+
   public SwerveSubsystem(SwerveDriveConfiguration driveCfg, SwerveControllerConfiguration controllerCfg)
   {
     swerveDrive = new SwerveDrive(driveCfg,
@@ -165,16 +166,16 @@ public class SwerveSubsystem extends SubsystemBase
 
   public boolean leftLidarClear(){
     int lidarValue = lidarLeft.getMeasurement().distance_mm;
-    return lidarValue > 140 || lidarValue == 0;
+    return lidarValue > 1800;
   }
 
   public boolean rightLidarClear(){
     int lidarValue = lidarRight.getMeasurement().distance_mm;
-    return lidarValue > 140 || lidarValue == 0;
+    return lidarValue > 2000;
   }
 
   public boolean lidarDistance(){
-    return lidarRight.getMeasurement().distance_mm > 200;
+    return lidarRight.getMeasurement().distance_mm > 500;
   }
 
   @Override

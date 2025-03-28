@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj.PS4Controller.Button;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -67,10 +68,10 @@ public class RobotContainer
   private boolean fieldOriented = true;
 
   // The robot's subsystems and commands are defined here...
-  private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
+  public final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve/neo"));
                                                                                 
-  private final Elevator elevator;
+  public final Elevator elevator;
   private final Intake intake;
   private final Wrist wrist;
   
@@ -81,6 +82,19 @@ public class RobotContainer
   private final Trigger elevatorL3Button = new Trigger(() -> operatorController.getRawButton(5));
   private final Trigger elevatorL2Button = new Trigger(() -> operatorController.getRawButton(20));
   private final Trigger elevatorL1Button = new Trigger(() -> operatorController.getRawButton(7));
+  
+  Trigger algaeMode = new Trigger(this::triggerAlgae);
+  Trigger notAlgaeMode = new Trigger(this::notTriggerAlgae);
+
+  Trigger algaeL4 = new Trigger(this::triggerAlgae).and(()->elevatorL4Button.getAsBoolean());
+  Trigger algaeL3 = new Trigger(this::triggerAlgae).and(()->elevatorL3Button.getAsBoolean());
+  Trigger algaeL2 = new Trigger(this::triggerAlgae).and(()->elevatorL2Button.getAsBoolean());  
+
+  private final Trigger coralL4 = new Trigger(()-> elevatorL4Button.getAsBoolean()).and(this::notTriggerAlgae);
+  private final Trigger coralL3 = new Trigger(()-> elevatorL3Button.getAsBoolean()).and(this::notTriggerAlgae);
+  private final Trigger coralL2 = new Trigger(()-> elevatorL2Button.getAsBoolean()).and(this::notTriggerAlgae);
+  private final Trigger coralL1 = new Trigger(()-> elevatorL1Button.getAsBoolean()).and(this::notTriggerAlgae);
+
   private final Trigger elevatorCollectButton = new Trigger(() -> operatorController.getRawButton(11));
 
   // Buttons for controlling the intake
@@ -109,12 +123,6 @@ public class RobotContainer
   Trigger backRightReefButton = new Trigger(() -> operatorController.getRawButton(9));
 
   Trigger visionTestButton = new Trigger(() -> operatorController.getRawButton(10));
-
-  Trigger algaeMode = new Trigger(this::triggerAlgae);
-
-
-
-
 
   /**
    * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
@@ -221,6 +229,8 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     NamedCommands.registerCommand("raisel4", Commands.parallel(elevator.setElevatorPositionCommand(()->Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT), wrist.setPositionCommand(()->Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)));
     NamedCommands.registerCommand("scoreCoral", new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? .5 : .5), () ->wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE)));
     NamedCommands.registerCommand("centerWheels", drivebase.centerModulesCommand());
+    NamedCommands.registerCommand("engageServo", new InstantCommand(()-> elevator.setPosition(2500)));
+    NamedCommands.registerCommand("autoIntake", new StartEndCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED), () -> intake.setSpeed(0), intake).until(intake::shouldStop));
     
     
     autoChooser = AutoBuilder.buildAutoChooser();
@@ -271,10 +281,10 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
      * 3. If instant transition is needed in the case of reseting the height or an emergency, setElevatorPositionCommand(height) can still be used
      */
     
-    elevatorL4Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE);}));
-    elevatorL3Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
-    elevatorL2Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
-    elevatorL1Button.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
+    coralL4.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE);}));
+    coralL3.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
+    coralL2.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
+    coralL1.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L1_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE);}));
     elevatorCollectButton.onTrue(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE));
     
     //Intake Buttons
@@ -283,20 +293,29 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     intakeInButton.onFalse(wrist.setPositionCommand(()->Constants.WristConstants.WRIST_MAX_ANGLE));
     intakeOutButton.whileTrue(new StartEndCommand(() -> intake.setSpeed(elevator.getElevatorPosition() == Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT ? Constants.IntakeConstants.INTAKE_OUT_SLOW : Constants.IntakeConstants.INTAKE_OUT_SPEED), () -> intake.setSpeed(0), intake));
     intakeOutButton.onFalse(wrist.setPositionCommand(()->Constants.WristConstants.WRIST_MAX_ANGLE));
-    algaeMode.onTrue(new InstantCommand(()-> {wrist.setAlgaeMode(true); intake.setAlgaeMode(true);}));
-    algaeMode.onFalse(new InstantCommand(()-> {wrist.setAlgaeMode(false); intake.setAlgaeMode(false);}));
+    //algaeMode.onTrue(new InstantCommand(()-> {wrist.setAlgaeMode(true); intake.setAlgaeMode(true);}));
+    //algaeMode.onFalse(new InstantCommand(()-> {wrist.setAlgaeMode(false); intake.setAlgaeMode(false);}));
+
+     //algaeL3.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE);}));
+    // algaeL2.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE);}));
+
+    algaeL2.onTrue(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT - 5, Constants.WristConstants.WRIST_ALGAE_COLLECT_ANGLE));
+    algaeL3.onTrue(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT - 5, Constants.WristConstants.WRIST_ALGAE_COLLECT_ANGLE));
+    algaeL4.onTrue(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_BARGE_ANGLE));
 
     //Climbing Buttons    
-    ratchetCloseButton.whileTrue(new InstantCommand(()-> elevator.toggleServo(), elevator));
+    ratchetCloseButton.whileTrue(elevator.setElevatorPositionCommand(()->Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT));
+    ratchetCloseButton.onFalse(new InstantCommand(()-> elevator.toggleServo()));
     visionTestButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
 
     NamedCommands.registerCommand("LeftAutoAlign", drivebase.driveFieldOriented(getHorizonatalInputStream(.2)).until(drivebase::leftLidarClear)
     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.3))
-    .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE).withTimeout(1))
-    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.3)).withTimeout(.5))
-    .andThen(new InstantCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SLOW)).withTimeout(.5))
+    .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE).withTimeout(.5))
+    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.3)).withTimeout(1))
+    .andThen(new RunCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SPEED)).withTimeout(.5))
     .andThen(wrist.setPositionCommand(()-> Constants.WristConstants.WRIST_MAX_ANGLE).withTimeout(.5))
-    .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE)));
+    .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE).withTimeout(.25))
+    .andThen(new InstantCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED)).withTimeout(.1)));
 
     //Auto Score Buttons
     strafeLeftButton.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(.2)).until(drivebase::leftLidarClear)
@@ -304,7 +323,7 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     .andThen(getManipulatorScoringCommand().withTimeout(.5)));
     
     strafeRightButton.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(-.2)).until(drivebase::rightLidarClear)
-    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.3))
+    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.4))
     .andThen(getManipulatorScoringCommand().withTimeout(.5)));
 
     drivebase.setDefaultCommand(driveRobotOrientedAngularVelocity);
@@ -330,7 +349,12 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
   }
 
   public boolean triggerAlgae(){
-    return driverController.getRawAxis(5) > 0;
+    boolean algae = driverController.getRawAxis(5) > 0;
+    SmartDashboard.putBoolean("Algae Mode", algae);
+    return algae;
+  }
+  public boolean notTriggerAlgae(){
+    return driverController.getRawAxis(5) < .5;
   }
 
   // public void setMotorBrake(boolean brake)

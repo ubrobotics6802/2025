@@ -5,6 +5,7 @@
 package frc.robot;
 
 import com.revrobotics.ColorSensorV3;
+import com.revrobotics.servohub.config.ServoHubConfig;
 
 import au.grapplerobotics.CanBridge;
 import au.grapplerobotics.LaserCan;
@@ -142,6 +143,7 @@ public class Robot extends TimedRobot
     {
       CommandScheduler.getInstance().cancelAll();
     }
+      m_robotContainer.elevator.toggleBehavior();
   }
 
   /**
@@ -165,6 +167,7 @@ public class Robot extends TimedRobot
   @Override
   public void testPeriodic()
   {
+    m_robotContainer.drivebase.centerModulesCommand();
   }
 
   /**

@@ -14,6 +14,8 @@ import java.util.function.DoubleSupplier;
 import com.revrobotics.*;
 import com.revrobotics.servohub.ServoChannel;
 import com.revrobotics.servohub.ServoChannel.ChannelId;
+import com.revrobotics.servohub.config.ServoHubConfig;
+import com.revrobotics.servohub.config.ServoChannelConfig.BehaviorWhenDisabled;
 import com.revrobotics.servohub.ServoHub;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
@@ -33,13 +35,19 @@ public class Elevator extends SubsystemBase {
   // Initialize the servo hub
   ServoHub m_servoHub = new ServoHub(2);
   double targetPosition = Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT;
+  ServoHubConfig config2 = new ServoHubConfig();
 
   // Obtain a servo channel controller
-  ServoChannel servo = m_servoHub.getServoChannel(ChannelId.kChannelId5);
+  public ServoChannel servo = m_servoHub.getServoChannel(ChannelId.kChannelId5);
   public Elevator(SparkMaxConfig config) {    
+
+
     servo.setPowered(true);
     servo.setEnabled(true);
     servo.setPulseWidth(2500);
+    
+    config2.channel5.disableBehavior(BehaviorWhenDisabled.kSupplyPower);
+    m_servoHub.configure(config2, null);
     
 config.closedLoop
     .p(0.04)
@@ -60,8 +68,14 @@ config.closedLoop
     elevatorMotorRight.configure(config, ResetMode.kResetSafeParameters, null);
   }
 
+  public void toggleBehavior(){
+    config2.channel5.disableBehavior(BehaviorWhenDisabled.kDoNotSupplyPower);
+    m_servoHub.configure(config2, null);
+  }
+
   @Override
   public void periodic() {
+
     // This method will be called once per scheduler run
     if(servoOn){
       setPosition(2500);
@@ -71,6 +85,7 @@ config.closedLoop
     }
     //System.out.println(targetPosition);
     SmartDashboard.putBoolean("Elevator Open", servoOn);
+    SmartDashboard.putNumber("Elevator Target", targetPosition);
   }
   public void toggleServo() {
     servoOn = !servoOn;

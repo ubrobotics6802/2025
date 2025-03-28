@@ -60,10 +60,12 @@ public final class Constants
 
   public static final class WristConstants {
     public static final int WRIST_MOTOR_ID = 18;
-    public static final double WRIST_MAX_ANGLE = 3.0;
+    public static final double WRIST_MAX_ANGLE = 3.2;
+    public static final double WRIST_BARGE_ANGLE = 2.8;
     public static final double WRIST_COLLECT_ANGLE = 2.5;
     public static final double WRIST_HIGHER_SCORING_ANGLE = 1.2;
     public static final double WRIST_LOWER_SCORING_ANGLE = 1.21;  
+    public static final double WRIST_ALGAE_COLLECT_ANGLE = 1.9;
   }
 
   public static class OperatorConstants

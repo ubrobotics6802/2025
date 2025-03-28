@@ -38,7 +38,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "stage 1 MB"
+            "pathName": "stage 1 LB"
           }
         },
         {
@@ -52,6 +52,30 @@
                 }
               }
             ]
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "stage 2 LB"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "autoIntake"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "stage 3 LB"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "LeftAutoAlign"
           }
         }
       ]
