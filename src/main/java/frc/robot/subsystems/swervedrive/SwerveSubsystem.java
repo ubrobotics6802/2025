@@ -4,6 +4,7 @@
 
 package frc.robot.subsystems.swervedrive;
 
+import static edu.wpi.first.units.Units.Feet;
 import static edu.wpi.first.units.Units.Meter;
 
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -77,6 +78,12 @@ public class SwerveSubsystem extends SubsystemBase
   public boolean highLow = false;
   PhotonCamera camera = new PhotonCamera("FrontCamera");
   PhotonTrackedTarget trackedTarget = null;
+  boolean foundTarget = false;
+  public double yTarget = .5;
+  public double xTarget = .15;
+  boolean hasMoved = false;
+
+  public boolean isLeft = true;
   /**
    * 
    * AprilTag field layout.
@@ -115,7 +122,7 @@ public class SwerveSubsystem extends SubsystemBase
       throw new RuntimeException(e);
     }
     swerveDrive.setHeadingCorrection(false); // Heading correction should only be used while controlling the robot via angle.
-    swerveDrive.setCosineCompensator(false);//!SwerveDriveTelemetry.isSimulation); // Disables cosine compensation for simulations since it causes discrepancies not seen in real life.
+    swerveDrive.setCosineCompensator(true);//!SwerveDriveTelemetry.isSimulation); // Disables cosine compensation for simulations since it causes discrepancies not seen in real life.
     swerveDrive.setAngularVelocityCompensation(true,
                                                true,
                                                0.1); //Correct for skew that gets worse as angular velocity increases. Start with a coefficient of 0.1.
@@ -190,11 +197,49 @@ public class SwerveSubsystem extends SubsystemBase
     SmartDashboard.putNumber("lidar left", lidarLeft.getMeasurement().distance_mm);
     SmartDashboard.putNumber("lidar right", lidarRight.getMeasurement().distance_mm);
 
+    var results = camera.getLatestResult();
+    if(results.hasTargets()){
+      trackedTarget = results.getBestTarget();
+      yTarget = trackedTarget.getBestCameraToTarget().getMeasureY().in(Meter);
+      xTarget = trackedTarget.getBestCameraToTarget().getMeasureX().in(Meter);
+      foundTarget = true;
+    }
+    else{
+      yTarget = 0;
+      xTarget = 0;
+      foundTarget = false;
+    }
+    
+    SmartDashboard.putNumber("X offset", (xTarget - .5) * 1.25);
+    SmartDashboard.putNumber("Y offset", (Math.abs(yTarget) - .15) * 2);
+
   }
 
   @Override
   public void simulationPeriodic()
   {
+  }
+
+  public boolean hasStopped(){
+    if(hasMoved){
+      if(Math.abs(swerveDrive.getFieldVelocity().vxMetersPerSecond) < .05 && Math.abs(swerveDrive.getFieldVelocity().vyMetersPerSecond) < .05)
+      {
+        System.out.println("finished moving");
+        hasMoved = false;
+        return true;
+      }
+      else
+      {
+        
+      System.out.println("has moved but not enough");
+      return false;
+      } 
+    }
+    else{
+      hasMoved = Math.abs(swerveDrive.getFieldVelocity().vxMetersPerSecond) > .1 || (swerveDrive.getFieldVelocity().vyMetersPerSecond > .1);
+      System.out.println("don't know if we've moved yet");
+      return false;
+    }
   }
 
   /**
@@ -561,6 +606,29 @@ public class SwerveSubsystem extends SubsystemBase
                       fieldRelative,
                       false); // Open loop is disabled since it shouldn't be used most of the time.
   }
+
+  public double getYValueForTag() {
+    if(foundTarget)
+    {
+      if (isLeft) {
+          // Clamp the value between -1 and 1
+          return Math.max(-.5, Math.min(.5, (yTarget - (-.15)) * 1));
+      } else {
+          return Math.max(-1, Math.min(1, (yTarget - (.15)) * 1));
+      }
+    }
+    return 0;
+  }
+
+  public double getXValueForTag() {
+    if(foundTarget)
+    {
+      // Clamp the value between -1 and 1
+      return Math.max(-.5, Math.min(.5, (xTarget - .5) * .75));
+    }
+    return 0;
+  }
+  
 
   /**
    * Drive the robot given a chassis field oriented velocity.

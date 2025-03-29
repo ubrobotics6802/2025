@@ -72,7 +72,7 @@ public class Intake extends SubsystemBase {
       timer.start();
     }
 
-    if(shouldStop && timer.hasElapsed(1)){
+    if(shouldStop && timer.hasElapsed(.5)){
       
       shouldStop = false;
       timer.stop();

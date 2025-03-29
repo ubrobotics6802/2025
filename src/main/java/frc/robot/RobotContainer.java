@@ -78,6 +78,8 @@ public class RobotContainer
 
   // Buttons for controlling the elevator
   
+ 
+
   private final Trigger elevatorL4Button = new Trigger(() -> operatorController.getRawButton(8));
   private final Trigger elevatorL3Button = new Trigger(() -> operatorController.getRawButton(5));
   private final Trigger elevatorL2Button = new Trigger(() -> operatorController.getRawButton(20));
@@ -88,7 +90,8 @@ public class RobotContainer
 
   Trigger algaeL4 = new Trigger(this::triggerAlgae).and(()->elevatorL4Button.getAsBoolean());
   Trigger algaeL3 = new Trigger(this::triggerAlgae).and(()->elevatorL3Button.getAsBoolean());
-  Trigger algaeL2 = new Trigger(this::triggerAlgae).and(()->elevatorL2Button.getAsBoolean());  
+  Trigger algaeL2 = new Trigger(this::triggerAlgae).and(()->elevatorL2Button.getAsBoolean());
+  Trigger algaeFloor = new Trigger(this::triggerAlgae).and(()->elevatorL1Button.getAsBoolean());  
 
   private final Trigger coralL4 = new Trigger(()-> elevatorL4Button.getAsBoolean()).and(this::notTriggerAlgae);
   private final Trigger coralL3 = new Trigger(()-> elevatorL3Button.getAsBoolean()).and(this::notTriggerAlgae);
@@ -104,13 +107,22 @@ public class RobotContainer
   // Buttons for controlling the wrist
   
   private final Trigger coralRightButton = new Trigger(() -> operatorController.getRawButton(19));
+
+  
+  private final Trigger strafeLeftButton = new Trigger(() -> driverController.getRawButton(1));
   private final Trigger strafeRightButton = new Trigger(() -> driverController.getRawButton(2));
+
+  private final Trigger lidarStrafeLeft = strafeLeftButton.and(this::triggerLidar);
+  private final Trigger lidarStafeRight = strafeRightButton.and(this::triggerLidar);
+
+  private final Trigger tagStrafeLeft = strafeLeftButton.and(this::triggerAprilTags);
+  private final Trigger tagStrafeRight = strafeRightButton.and(this::triggerAprilTags);
+
   private final Trigger coralLeftButton = new Trigger(() -> operatorController.getRawButton(17));
 
   // Buttons for controlling ratchet mode
   private final Trigger ratchetCloseButton = new Trigger(() -> operatorController.getRawButton(18));
 
-  private final Trigger strafeLeftButton = new Trigger(() -> driverController.getRawButton(1));
 
   private final Trigger driveModeButton = new Trigger(() -> driverController.getRawButton(4));
   private final Trigger robotModeButton = new Trigger(() -> driverController.getRawButton(3));
@@ -170,6 +182,16 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
                                                             .scaleTranslation(0.8)
                                                             .allianceRelativeControl(false)
                                                             .robotRelative(true);
+
+    SwerveInputStream driveRobotOrientedAprilTag = SwerveInputStream.of(drivebase.getSwerveDrive(),
+    () -> drivebase.getXValueForTag(),
+    () -> drivebase.getYValueForTag())
+.withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
+.deadband(.01)
+
+.scaleTranslation(0.8)
+.allianceRelativeControl(false)
+.robotRelative(true);
 
 
 
@@ -257,6 +279,9 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
   private void configureBindings()
   {
 
+    //Setup strafe buttons
+    strafeLeftButton.onTrue(new InstantCommand(()-> drivebase.isLeft = true));
+    strafeRightButton.onTrue(new InstantCommand(()-> drivebase.isLeft = false));
     //Setup drive commands
     Command driveFieldOrientedDirectAngle      = drivebase.driveFieldOriented(driveDirectAngle);
     Command driveFieldOrientedAnglularVelocity = drivebase.driveFieldOriented(driveAngularVelocity);
@@ -271,7 +296,7 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     coralLeftButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationBackRight));
     coralRightButton.onTrue(drivebase.driveFieldOriented(driveDirectAngleToDestinationBackLeft));
 
-    driveModeButton.onTrue(driveFieldOrientedDirectAngle);
+    driveModeButton.onTrue(driveFieldOrientedAnglularVelocity);
     robotModeButton.onTrue(driveRobotOrientedAngularVelocity);
 
     /**
@@ -298,7 +323,7 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
 
      //algaeL3.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE);}));
     // algaeL2.onTrue(new InstantCommand(()-> {elevator.setTargetElevatorPosition(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT); wrist.setPosition(Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE);}));
-
+    algaeFloor.onTrue(getManipulatorScoringCommand(0, Constants.WristConstants.WRIST_LOWER_SCORING_ANGLE));
     algaeL2.onTrue(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L2_HEIGHT - 5, Constants.WristConstants.WRIST_ALGAE_COLLECT_ANGLE));
     algaeL3.onTrue(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L3_HEIGHT - 5, Constants.WristConstants.WRIST_ALGAE_COLLECT_ANGLE));
     algaeL4.onTrue(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_BARGE_ANGLE));
@@ -308,23 +333,27 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     ratchetCloseButton.onFalse(new InstantCommand(()-> elevator.toggleServo()));
     visionTestButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
 
-    NamedCommands.registerCommand("LeftAutoAlign", drivebase.driveFieldOriented(getHorizonatalInputStream(.2)).until(drivebase::leftLidarClear)
-    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.3))
-    .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE).withTimeout(.5))
-    .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.3)).withTimeout(1))
-    .andThen(new RunCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SPEED)).withTimeout(.5))
-    .andThen(wrist.setPositionCommand(()-> Constants.WristConstants.WRIST_MAX_ANGLE).withTimeout(.5))
-    .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE).withTimeout(.25))
-    .andThen(new InstantCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED)).withTimeout(.1)));
+    NamedCommands.registerCommand("LeftAutoAlign", (drivebase.driveFieldOriented(driveRobotOrientedAprilTag)
+       .alongWith(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)))
+     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.3)).withTimeout(.5))
+     .andThen(new RunCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SPEED)).withTimeout(.5))
+     .andThen(wrist.setPositionCommand(()-> Constants.WristConstants.WRIST_MAX_ANGLE).withTimeout(.5))
+     .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE).withTimeout(.25))
+     .andThen(new InstantCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED)).withTimeout(.1)));
 
     //Auto Score Buttons
-    strafeLeftButton.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(.2)).until(drivebase::leftLidarClear)
+    lidarStrafeLeft.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(.2)).until(drivebase::leftLidarClear)
     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.3))
     .andThen(getManipulatorScoringCommand().withTimeout(.5)));
     
-    strafeRightButton.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(-.2)).until(drivebase::rightLidarClear)
+    lidarStafeRight.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(-.2)).until(drivebase::rightLidarClear)
     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.4))
     .andThen(getManipulatorScoringCommand().withTimeout(.5)));
+
+    tagStrafeLeft.onTrue(drivebase.driveFieldOriented(driveRobotOrientedAprilTag)
+    .alongWith(getManipulatorScoringCommand()).until(drivebase::hasStopped));
+    tagStrafeRight.onTrue(drivebase.driveFieldOriented(driveRobotOrientedAprilTag)
+    .alongWith(getManipulatorScoringCommand()).until(drivebase::hasStopped));
 
     drivebase.setDefaultCommand(driveRobotOrientedAngularVelocity);
   }
@@ -334,7 +363,7 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
   }
   
   public Command getManipulatorScoringCommand(){
-    return Commands.parallel(drivebase.centerModulesCommand(), elevator.setElevatorPositionCommand(), wrist.setPositionCommand());
+    return Commands.parallel(elevator.setElevatorPositionCommand(), wrist.setPositionCommand());
   }
 
   /**
@@ -353,6 +382,15 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     SmartDashboard.putBoolean("Algae Mode", algae);
     return algae;
   }
+
+  public boolean triggerLidar(){
+    return driverController.getRawAxis(7) > 0;
+  }
+
+  public boolean triggerAprilTags(){
+    return driverController.getRawAxis(7) < 0;
+  }
+
   public boolean notTriggerAlgae(){
     return driverController.getRawAxis(5) < .5;
   }

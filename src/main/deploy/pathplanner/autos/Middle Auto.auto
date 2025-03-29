@@ -50,6 +50,12 @@
                 "data": {
                   "name": "LeftAutoAlign"
                 }
+              },
+              {
+                "type": "wait",
+                "data": {
+                  "waitTime": 30.0
+                }
               }
             ]
           }
