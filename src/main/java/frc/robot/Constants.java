@@ -46,7 +46,7 @@ public final class Constants
     public static final double ELEVATOR_L3_HEIGHT = 45.7;
     public static final double ELEVATOR_L2_HEIGHT = 24.1;
     public static final double ELEVATOR_L1_HEIGHT = 20.0;
-    public static final double ELEVATOR_COLLECT_HEIGHT = 10.0;
+    public static final double ELEVATOR_COLLECT_HEIGHT = 13.5;
     public static final double ELEVATOR_CLIMB_BUTTON_POWER = -0.4;
   }
 
@@ -62,8 +62,8 @@ public final class Constants
     public static final int WRIST_MOTOR_ID = 18;
     public static final double WRIST_MAX_ANGLE = 3.2;
     public static final double WRIST_BARGE_ANGLE = 2.8;
-    public static final double WRIST_COLLECT_ANGLE = 2.5;
-    public static final double WRIST_HIGHER_SCORING_ANGLE = 1.4;
+    public static final double WRIST_COLLECT_ANGLE = 2.3;
+    public static final double WRIST_HIGHER_SCORING_ANGLE = 1.3;
     public static final double WRIST_LOWER_SCORING_ANGLE = 1.21;  
     public static final double WRIST_ALGAE_COLLECT_ANGLE = 1.9;
   }

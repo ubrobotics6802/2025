@@ -334,8 +334,9 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
     visionTestButton.whileTrue(new StartEndCommand(() -> {elevator.setPower(Constants.ElevatorConstants.ELEVATOR_CLIMB_BUTTON_POWER); wrist.setPosition(Constants.WristConstants.WRIST_MAX_ANGLE);}, () -> elevator.setPower(0), elevator));
 
     NamedCommands.registerCommand("LeftAutoAlign", (drivebase.driveFieldOriented(driveRobotOrientedAprilTag)
-       .alongWith(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE)))
-     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.3)).withTimeout(.5))
+       .alongWith(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE))).until(drivebase::hasStopped)
+     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.2)).until(drivebase::closeEnough))
+     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(0)).until(drivebase::closeEnough))
      .andThen(new RunCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SPEED)).withTimeout(.5))
      .andThen(wrist.setPositionCommand(()-> Constants.WristConstants.WRIST_MAX_ANGLE).withTimeout(.5))
      .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE).withTimeout(.25))

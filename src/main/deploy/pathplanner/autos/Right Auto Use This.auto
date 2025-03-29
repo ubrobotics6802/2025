@@ -77,6 +77,30 @@
           "data": {
             "name": "LeftAutoAlign"
           }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "stage 4 RB"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "autoIntake"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "stage 5 RB"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "LeftAutoAlign"
+          }
         }
       ]
     }
