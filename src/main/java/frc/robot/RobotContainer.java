@@ -145,13 +145,44 @@ public class RobotContainer
                                                             .withControllerRotationAxis(()-> driverController.getRawAxis(leftX) * -1)
                                                             .deadband(OperatorConstants.DEADBAND)
                                                             .scaleTranslation(0.8)
+                                                            .translationOnlyWhile(() -> Math.abs(driverController.getRawAxis(leftX)) < .1)
                                                             .allianceRelativeControl(true);
 
   /**
    * Clone's the angular velocity input stream and converts it to a fieldRelative input stream.
    */
-  SwerveInputStream driveDirectAngle = driveAngularVelocity.copy().withControllerHeadingAxis(() -> driverController.getRawAxis(leftX) * -1,
-  () -> driverController.getRawAxis(leftY))
+  SwerveInputStream driveDirectAngle = driveAngularVelocity.copy().withControllerHeadingAxis(() -> 
+  {
+    double xValue = driverController.getRawAxis(leftX) * -1;
+    if(xValue > .5){
+      return .866;
+    }else if(xValue < -.5){
+      return -.866;
+    }else{
+      return 0;
+    }
+  },
+  () -> 
+  { 
+    double yValue = driverController.getRawAxis(leftY);
+    double xValue = driverController.getRawAxis(leftX) * -1;
+    if(Math.abs(xValue) < .5 && yValue > .5){
+      return 1;
+    }
+    else if(Math.abs(xValue) < .5 && yValue < -.5){
+      return -1;
+    }
+    else if (yValue > .5){
+      return .5;
+    }
+    else if(yValue < -.5){
+      return -.5;
+    }
+    else{
+      return 0;
+    }
+
+  })
                                                            .headingWhile(true);
 
 SwerveInputStream driveDirectAngleToDestinationFront = driveAngularVelocity.copy().withControllerHeadingAxis(() -> 0, () -> 1)
@@ -181,6 +212,7 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
                                                           
                                                             .scaleTranslation(0.8)
                                                             .allianceRelativeControl(false)
+                                                            .translationOnlyWhile(() -> Math.abs(driverController.getRawAxis(leftX)) < .1)
                                                             .robotRelative(true);
 
     SwerveInputStream driveRobotOrientedAprilTag = SwerveInputStream.of(drivebase.getSwerveDrive(),
