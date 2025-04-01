@@ -170,8 +170,12 @@ public class SwerveSubsystem extends SubsystemBase
   public boolean getHighLow(){
     return highLow;
   }
-  public boolean closeEnough(){
+  public boolean closeEnoughRight(){
     int lidarValue = lidarRight.getMeasurement().distance_mm;
+    return lidarValue < 400;
+  }
+  public boolean closeEnoughLeft(){
+    int lidarValue = lidarLeft.getMeasurement().distance_mm;
     return lidarValue < 400;
   }
 

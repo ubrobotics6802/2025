@@ -367,14 +367,23 @@ SwerveInputStream driveDirectAngleToDestinationBackRight = driveAngularVelocity.
 
     NamedCommands.registerCommand("LeftAutoAlign", (drivebase.driveFieldOriented(driveRobotOrientedAprilTag)
        .alongWith(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE))).until(drivebase::hasStopped)
-     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.2)).until(drivebase::closeEnough))
-     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(0)).until(drivebase::closeEnough))
+     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.2)).until(drivebase::closeEnoughRight))
+     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(0)).until(drivebase::closeEnoughRight))
      .andThen(new RunCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SPEED)).withTimeout(.5))
      .andThen(wrist.setPositionCommand(()-> Constants.WristConstants.WRIST_MAX_ANGLE).withTimeout(.5))
      .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE).withTimeout(.25))
      .andThen(new InstantCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED)).withTimeout(.1)));
 
-    //Auto Score Buttons
+     NamedCommands.registerCommand("RightAutoAlign", (drivebase.driveFieldOriented(driveRobotOrientedAprilTag)
+     .alongWith(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_L4_HEIGHT, Constants.WristConstants.WRIST_HIGHER_SCORING_ANGLE))).until(drivebase::hasStopped)
+   .andThen(drivebase.driveFieldOriented(getVerticalInputStream(.2)).until(drivebase::closeEnoughLeft))
+   .andThen(drivebase.driveFieldOriented(getVerticalInputStream(0)).until(drivebase::closeEnoughLeft))
+   .andThen(new RunCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_OUT_SPEED)).withTimeout(.5))
+   .andThen(wrist.setPositionCommand(()-> Constants.WristConstants.WRIST_MAX_ANGLE).withTimeout(.5))
+   .andThen(getManipulatorScoringCommand(Constants.ElevatorConstants.ELEVATOR_COLLECT_HEIGHT, Constants.WristConstants.WRIST_COLLECT_ANGLE).withTimeout(.25))
+   .andThen(new InstantCommand(() -> intake.setSpeed(Constants.IntakeConstants.INTAKE_IN_SPEED)).withTimeout(.1)));
+    
+     //Auto Score Buttons
     lidarStrafeLeft.onTrue(drivebase.driveFieldOriented(getHorizonatalInputStream(.2)).until(drivebase::leftLidarClear)
     .andThen(drivebase.driveFieldOriented(getVerticalInputStream(-.3)).withTimeout(.3))
     .andThen(getManipulatorScoringCommand().withTimeout(.5)));
